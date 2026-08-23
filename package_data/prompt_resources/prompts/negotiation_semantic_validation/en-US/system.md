@@ -13,7 +13,7 @@ Output exactly one JSON object containing exactly the following 4 required keys;
 }
 
 - semantic_verdict: the overall verdict of semantic validation; true when every validation task passes, false when any validation task fails.
-- negotiation_type: the negotiation type implied by the message sections, one of "information" / "target" / "feasibility"; it may be null when semantic_verdict is false; when semantic_verdict is true it must be non-null and must match the declared negotiation type.
+- negotiation_type: the negotiation type implied by the message sections, one of "information" / "target" / "feasibility"; it may be null when semantic_verdict is false; when semantic_verdict is true and the declared template is a typed negotiation template it must be non-null and must match the declared negotiation type; for the common abort template it must be null because abort messages are type-independent.
 - errors: the semantic error details array; each element is an object with exactly three keys, slot_name, code, and message; it must be an empty array when semantic_verdict is true.
 - params: the parameter object extracted from the message per the parameter schema; output an empty object {} when no parameter can be extracted.
 
@@ -23,10 +23,10 @@ Output exactly one JSON object containing exactly the following 4 required keys;
 3. Conclusion and content match: a message whose conclusion is Accept must carry an explicit confirmation (the confirmed information, intent, or outcome statement); a message whose conclusion is Reject must carry an explicit failure or rejection reason.
 4. Field self-consistency: field values within the same message must not contradict each other (for example, the conclusion is Accept while the body states a rejection; or the same numeric target differs across sections).
 5. Structural semantics:
-   - The conclusion value must be either Accept or Reject; Abort is a protocol-reserved value not carried by the current templates, and its presence is a structural semantics error.
+   - For a typed negotiation template, the conclusion value must be either Accept or Reject; an Abort conclusion in a message declared against a typed template is a structural semantics error. For the common abort template, the message must carry the Abort conclusion and a termination reason section stating why the negotiation ended.
    - An ending-phase (accept-reject) message must contain the result content section (Information Negotiation Result Content / Target Negotiation Result Content / Feasibility Assessment Result Confirmation).
    - The two conditional sections of a feasibility negotiation propose message (Under Evaluation Description and Infeasible Evaluation Details and Proposal) are mutually exclusive and must not both appear.
-6. Template consistency: the negotiation type and phase implied by the message sections must match the template identifier (template_uri) declared in the user prompt and its declared negotiation type. A type mismatch is a type consistency error; a phase mismatch (for example, the declared template identifier is for the propose phase while the message is an ending message, or vice versa) is a phase consistency error.
+6. Template consistency: the negotiation type and phase implied by the message sections must match the template identifier (template_uri) declared in the user prompt and its declared negotiation type. A type mismatch is a type consistency error; a phase mismatch (for example, the declared template identifier is for the propose phase while the message is an ending message, or vice versa) is a phase consistency error. When the declared template is the common abort template, the message must be an abort message: it carries the Abort conclusion and no typed negotiation sections; an abort message declared against a typed template, or a typed message declared against the common abort template, is a template consistency error.
 
 ## Parameter Extraction Task
 - Extract parameters from the message content per the parameter schema given in the user prompt and fill the params object.
@@ -35,7 +35,7 @@ Output exactly one JSON object containing exactly the following 4 required keys;
 
 ## slot_name Convention
 The slot_name of semantic and structural semantics errors must use the following language-neutral canonical keys, chosen by the message section at fault:
-- section.context: Negotiation Context
+- section.termination_reason: Negotiation Termination Reason
 - section.info_static: Information Negotiation
 - section.info_items: Required Information Items
 - section.info_conclusion: Information Negotiation Result
@@ -66,7 +66,6 @@ The params in the following examples only illustrate the structure; the actual p
   "negotiation_type": "feasibility",
   "errors": [],
   "params": {
-    "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
     "confirmed_rate_mbps": 2
   }
 }

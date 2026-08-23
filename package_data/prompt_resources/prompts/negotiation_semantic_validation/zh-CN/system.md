@@ -13,7 +13,7 @@
 }
 
 - semantic_verdict：语义校验整体结论；全部校验任务通过时为 true，任一校验任务失败时为 false。
-- negotiation_type：报文板块蕴含的协商类型，取值为 "information" / "target" / "feasibility" 之一；semantic_verdict 为 false 时可为 null；为 true 时必须非 null，且必须与声明的协商类型一致。
+- negotiation_type：报文板块蕴含的协商类型，取值为 "information" / "target" / "feasibility" 之一；semantic_verdict 为 false 时可为 null；为 true 且声明的模板为类型化协商模板时必须非 null，且必须与声明的协商类型一致；声明的模板为 common abort 模板时必须为 null，因为协商终止报文与协商类型无关。
 - errors：语义错误明细数组，每个元素是恰好包含 slot_name、code、message 三个键的对象；semantic_verdict 为 true 时必须为空数组。
 - params：按参数 schema 从报文中提取的参数对象；无参数可提取时输出空对象 {}。
 
@@ -23,10 +23,10 @@
 3. 结论与内容匹配：结论为 Accept 的报文必须携带明确的确认内容（确认后的信息、意图或结论表述）；结论为 Reject 的报文必须携带明确的失败或拒绝原因。
 4. 字段取值自洽：同一报文内各字段取值不得自相矛盾（例如结论为 Accept 而正文表述为拒绝；同一数值目标前后不一致）。
 5. 结构语义：
-   - 结论字段的取值只能为 Accept 或 Reject；Abort 为协议预留值，当前模板不承接，出现即记结构语义错误。
+   - 类型化协商模板的结论字段取值只能为 Accept 或 Reject；类型化模板的报文中出现 Abort 结论记结构语义错误。common abort 模板的报文必须携带 Abort 结论，并存在说明协商终止原因的终止原因板块。
    - 结论阶段（accept-reject）报文必须存在结果内容板块（信息协商结果内容 / 目标协商结果内容 / 可行性评估结果确认）。
    - 可行性协商发起报文的两个条件板块（待评估内容说明 与 评估不可行时的详情和提案）互斥，不得同时出现。
-6. 模板一致性：报文板块蕴含的协商类型与阶段，必须与用户提示词中声明的模板标识（template_uri）及其声明的协商类型一致。类型不一致记类型一致性错误；阶段不一致（如声明的模板标识为发起阶段而报文为结论报文，或反之）记阶段一致性错误。
+6. 模板一致性：报文板块蕴含的协商类型与阶段，必须与用户提示词中声明的模板标识（template_uri）及其声明的协商类型一致。类型不一致记类型一致性错误；阶段不一致（如声明的模板标识为发起阶段而报文为结论报文，或反之）记阶段一致性错误。声明的模板为 common abort 模板时，报文必须是协商终止报文：携带 Abort 结论且不含类型化协商板块；协商终止报文声明为类型化模板，或类型化报文声明为 common abort 模板，均记模板一致性错误。
 
 ## 参数提取任务
 - 按用户提示词中给出的参数 schema，从报文内容中提取参数并填充 params 对象。
@@ -35,7 +35,7 @@
 
 ## slot_name 规范
 语义错误与结构语义错误的 slot_name 必须使用以下语言无关的规范键，按出错的报文板块选择：
-- section.context：协商上下文（Negotiation Context）
+- section.termination_reason：协商终止原因（Negotiation Termination Reason）
 - section.info_static：信息协商（Information Negotiation）
 - section.info_items：所需信息项（Required Information Items）
 - section.info_conclusion：信息协商结果（Information Negotiation Result）
@@ -66,7 +66,6 @@ message 必须为英文。
   "negotiation_type": "feasibility",
   "errors": [],
   "params": {
-    "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
     "confirmed_rate_mbps": 2
   }
 }

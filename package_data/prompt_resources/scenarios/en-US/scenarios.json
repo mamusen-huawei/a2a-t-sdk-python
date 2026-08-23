@@ -17,6 +17,12 @@
       "scenario_name": "Private Line Complaint",
       "description": "Used to generate an A2A-T task request for network-side fault root cause diagnosis in a private line complaint scenario in a telecom network management system.",
       "example": "Please confirm the root cause of fault fault-id-1-328-20260510-58489 that occurred on the Guangdong enterprise private line at 2026-05-10T18:25:30Z, and provide repair suggestions."
+    },
+    {
+      "scenario_code": "service-recovery",
+      "scenario_name": "Service Recovery Event Subscription",
+      "description": "Used to generate an A2A-T task request for subscribing to service recovery events in a telecom network management system, describing the subscription condition and the notification data format for network-side service recovery events.",
+      "example": "Help me subscribe to service recovery events: only for the xx subnetwork, and report the recovery plan execution status, diagnosis sequence number, access port, and execution result in each event."
     }
   ]
 }

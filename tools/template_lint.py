@@ -36,6 +36,12 @@ NOTIFICATION_HEADINGS = {
     "Notification Data Format",
     "Expected Output",
 }
+AUTHORIZATION_HEADINGS = {
+    "Authorization Policy Operation Type",
+    "Authorization Policy Operation Description",
+    "Network Operation Authorization Policy List",
+    "Expected Output",
+}
 HEADING_ALIASES = {
     "任务描述": "Task Description",
     "任务类型": "Task Type",
@@ -51,6 +57,9 @@ HEADING_ALIASES = {
     "订阅条件": "Subscribe Condition",
     "通知数据格式": "Notification Data Format",
     "上报通知数据格式": "Notification Data Format",
+    "授权策略的操作类型": "Authorization Policy Operation Type",
+    "授权策略的操作描述": "Authorization Policy Operation Description",
+    "动网操作的授权策略列表": "Network Operation Authorization Policy List",
 }
 
 
@@ -122,9 +131,21 @@ def lint_template(template_path: Path, schema_path: Path) -> list[LintError]:
         placeholders.extend((line_number, slot) for slot in PLACEHOLDER_PATTERN.findall(line))
 
     heading_names = [name for _, name, _ in headings]
-    profile = "notification" if "Subscription Description" in heading_names else "task"
-    allowed_headings = NOTIFICATION_HEADINGS if profile == "notification" else TASK_HEADINGS
-    required_headings = {"Subscription Description"} if profile == "notification" else {"Task Description"}
+    if "Subscription Description" in heading_names:
+        profile = "notification"
+    elif "Authorization Policy Operation Type" in heading_names:
+        profile = "authorization"
+    else:
+        profile = "task"
+    if profile == "notification":
+        allowed_headings = NOTIFICATION_HEADINGS
+        required_headings = {"Subscription Description"}
+    elif profile == "authorization":
+        allowed_headings = AUTHORIZATION_HEADINGS
+        required_headings = {"Authorization Policy Operation Type"}
+    else:
+        allowed_headings = TASK_HEADINGS
+        required_headings = {"Task Description"}
 
     if not headings:
         errors.append(
