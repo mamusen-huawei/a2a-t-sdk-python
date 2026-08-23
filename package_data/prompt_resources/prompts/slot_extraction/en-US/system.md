@@ -26,7 +26,7 @@ Return a JSON object with the following structure:
 ## Error Reporting Rules
 Report errors ONLY in `slot_errors` array with the following codes:
 - **missing_input**: Required slot cannot be extracted from input (value set to null)
-- **invalid_value**: Extracted value violates the slot's value_constraint (value set to null)
+- **invalid_value**: Extracted value violates the slot's constraints (enum, pattern, minimum, maximum, or x-a2at-value-constraint) (value set to null)
 
 ### Required vs Optional Slots
 - **Required slot missing**: Set value to null, add error with code="missing_input"
@@ -35,7 +35,7 @@ Report errors ONLY in `slot_errors` array with the following codes:
 
 ## Extraction Strategy
 1. Analyze the user input to identify explicit slot values
-2. Cross-reference with slot schema for value_constraint validation
+2. Cross-reference with slot schema for constraint validation (enum, pattern, minimum, maximum, x-a2at-value-constraint)
 3. Use template context to understand slot semantics and expected format
 4. For list-type slots, extract as JSON array string (e.g. "[\"item1\", \"item2\"]")
 

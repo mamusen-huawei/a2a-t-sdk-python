@@ -30,7 +30,7 @@
 4. 若输入中出现显式字段锚点，应优先按字段锚点后的内容映射到对应 slot。
 5. 显式字段锚点可以表现为 slot 名称本身，或与 slot `description` 语义明确对应的字段标签，并常见于“字段名 + 为 / 是 / ： / : / 包括 / 包含”等结构，以及分段式、列表式字段标签。
 6. 对显式字段锚点后的值，即使它与场景默认语义、模板固定文案或其他上下文重复，也不要省略。
-7. 仅当某内容与 slot 的 `description` 或 `value_constraint` 明确对应时才提取。
+7. 仅当某内容与 slot 的 `description` 或 `x-a2at-value-constraint` 明确对应时才提取。
 8. 同一 slot 下若有多个明确并列约束，应尽量完整保留。
 9. 拿不准时返回 `null`，不要基于常识补值或猜测。
 10. 若同一 slot 的信息分散在多个子句中，且这些子句都在表达用户要写入任务的正向约束，应合并保留，不要只保留最后出现的一项。
@@ -40,7 +40,7 @@
 ## 错误报告规则
 仅在 `slot_errors` 数组中报告错误，使用以下错误码：
 - **missing_input**：无法从输入中提取必填 slot（值设为 null）
-- **invalid_value**：提取的值违反 slot 的 value_constraint（值设为 null）
+- **invalid_value**：提取的值违反 slot 的约束（enum、pattern、minimum、maximum 或 x-a2at-value-constraint）（值设为 null）
 
 ### 必填 vs 可选 Slot
 - **必填 slot 缺失**：值设为 null，添加错误 code="missing_input"

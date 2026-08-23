@@ -10,6 +10,12 @@ Service recovery event
 
 ## Notification Data Format
 {{notification_data_format}} (required)
+Requirement: Please provide the following information for the content to be reported
+1. Information item name (required)
+2. Allowed values (optional)
+3. Example (optional)
+
+The following is an example of notification data format:
 ### Service Recovery Event
 Requirement:
 1. Service recovery plan execution status. Allowed values: not started, ended. Example: ended (required)

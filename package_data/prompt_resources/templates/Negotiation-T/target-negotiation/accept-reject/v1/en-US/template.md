@@ -1,11 +1,3 @@
-## Negotiation Context
-{{negotiation_context}} (required)
-Requirement:
-Each negotiation must contain the following information:
-- id: The unique identifier of a negotiation session, using UUID. When the negotiation enters a terminal state (Accept or Reject), this negotiation session terminates. Example: 3dbc13b5-bd57-4c2b-b503-24e381b6c8d3
-- round: The current round. Type: positive integer. Example: 1
-- maxRounds: The maximum number of rounds. When this number is exceeded, the negotiation ends. Type: positive integer. Example: 5
-
 ## Target Negotiation Result
 {{target_negotiation_result}} (required)
 Requirement:
