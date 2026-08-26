@@ -1,352 +1,780 @@
 # 1 a2a-t-sdk-python Developer Guide
 
+| Category       | Description                                                        |
+| -------------- | ------------------------------------------------------------------ |
+| Target readers | Developers, integration and deployment engineers, and project O&M personnel who build multi-agent protocol interactions based on the A2A-T SDK |
+| Purpose        | This document describes the complete installation, parameter configuration, and minimal practices of the A2A-T SDK, helping users complete SDK integration, feature development, and production deployment quickly and consistently. |
+| Prerequisites  | Familiar with the data model definitions and usage of the A2A multi-agent protocol, the AgentCard model definition and usage, and registry-center-related functions |
+
 ## 1.1 Feature Introduction
 
-See the [User Guide 1.1 Feature Introduction](https://github.com/project-openan/a2a-t-sdk-python/blob/main/docs/en/user_guide.md) section.
+### 1.1.1 A2A-T Capabilities
+A2A-T (Agent-to-Agent Telecom) is a multi-agent interconnection protocol for the telecom domain built on the A2A protocol, designed specifically for complex collaboration scenarios in the telecom domain.
+
+General-purpose agent interconnection protocols in the industry mainly focus on agent interconnection and interaction frameworks, paying insufficient attention to business scenarios and specific interaction content, which results in a low task completion success rate. Business scenarios in the telecom domain are complex and demanding, so a dedicated protocol is required to support the interconnection and collaboration of O&M agents. Based on the A2A protocol, the A2A-T solution focuses on application extensions for enhanced capabilities such as information models, task negotiation, and collaboration security for telecom business flows.
+
+a2a-t-sdk-python is a Python SDK for telecom agent collaboration scenarios. It is used to generate, validate, and negotiate task prompts in A2A-T interactions. The SDK is suitable for integration by client Agents, server Agents, and upper-layer orchestration systems.
+
+Main capabilities include:
+
+- **Task prompt generation**: The client generates A2A-T-conformant protocol messages from natural language or structured input.
+- **Server-side prompt validation**: The server validates whether the A2A-T protocol message submitted by the client matches the scenario, template, and slot constraints.
+- **Multi-round negotiation**: Supports `information`, `feasibility`, and `target` negotiation processes.
+- **Prompt resource management**: Built-in scenario, slot, template, and system prompt resources, with support for local file resource loading.
+- **LLM adaptation**: Connects to external large language models through OpenAI-compatible APIs.
+
+### 1.1.2 Relationship Between the A2A-T SDK and the A2A SDK
+
+The A2A-T protocol is an extension of the A2A protocol. The A2A-T SDK is provided for the extended protocol content, supporting rapid construction of agents for complex collaboration scenarios in the telecom domain. The A2A-T SDK is independent of the A2A SDK. By integrating both the A2A-T SDK and the A2A SDK, you can build agents that support the A2A-T protocol, enabling deterministic, highly reliable, efficient, and secure collaboration among multiple agents in the telecom domain.
+
+```mermaid
+flowchart LR
+    subgraph Server["Server Agent"]
+        B0["Server agent business code"]
+        B1["A2A Server SDK<br><br>1. Receive requests<br>2. Task management and event queue management<br>..."]
+        B2["A2A-T Server SDK<br><br>1. Template compliance validation and parameter extraction<br>2. Negotiation state management<br>..."]
+        B0 --receive response--- B1
+        B0 --A2A-T message validation and parameter extraction--- B2
+    end
+
+    subgraph Client["Client Agent"]
+        A0["Client agent business code"]
+        A1["A2A-T Client SDK<br><br>1. Provide A2A-T prompt templates<br>2. Generate A2A-T protocol template messages<br>3. Negotiation state management<br>..."]
+        A2["A2A Client SDK<br><br>1. Provide standard A2A data object models<br>2. Task management and event queue management<br>3. Send requests, multi-protocol support: JSON-RPC, HTTP/REST<br>..."]
+        A0 --generate A2A-T protocol message--- A1
+        A0 --assemble A2A extensions and send request--- A2
+    end
+
+    Client -- HTTPS A2A-T request --> Server
+    Server -- HTTPS A2A-T response --> Client
+
+```
 
 ## 1.2 Constraints and Limitations
 
-1. Python version requirement is 3.12+.
-2. Built-in resource coverage is limited; the current bundled resources are primarily scenarios such as `subscribe_incident`.
+1. Python 3.12+ is required.
+2. Complete multi-agent protocol interaction development additionally requires `a2a-sdk` version 1.1.0+.
 3. Negotiation state storage only provides `in_memory`; state is lost after the process exits.
-4. The SDK does not provide Agent HTTP service framework, registry-center client, authentication, or key management capabilities; these must be integrated by the business system.
+4. The A2A-T SDK does not provide an agent HTTP service framework, registry-center client, authentication, or key management capabilities; these must be integrated by the business system.
 
 ## 1.3 Environment Preparation
 
-### 1.3.1 Obtain Source Code
+### 1.3.1 Environment Requirements
 
-```bash
-git clone git@github.com:project-openan/a2a-t-sdk-python.git
-cd a2a-t-sdk-python
+| Item                | Requirement                                                        |
+| ------------------- | ------------------------------------------------------------------ |
+| Python SDK          | Python 3.12+                                                       |
+| Dependency management | `uv` recommended                                                 |
+| LLM                 | An accessible OpenAI service and API key                           |
+| Operating system    | Linux, Windows, and macOS are all suitable for development and integration testing |
+
+### 1.3.2 Setting Up the Environment
+
+Taking a Windows 11 64-bit amd64 development environment as an example:
+
+**Install Python 3.12**
+
+1. Official download link: https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe
+
+2. Run `python-3.12.10-amd64.exe` as administrator
+
+3. **Make sure to check**: Add Python 3.12 to PATH
+
+4. After installation, open a terminal and run the verification command:
+
+   ```shell
+   python --version
+   # Expected output: Python 3.12.10
+   ```
+
+**Install uv**
+
+1. After installing Python, install uv using pip. In a terminal, run: `python -m pip install uv`
+
+2. After installation, run the verification command:
+
+   ```shell
+   uv --version
+   # Expected output: uv 0.12.1 (329541a50 2026-07-31 x86_64-pc-windows-msvc)
+   ```
+
+## 1.4 Basic Development Sample
+
+### 1.4.1 System Architecture
+
+A basic multi-agent collaboration interaction flow involves at least three components: a client Agent, a server Agent, and a registry center.
+
+The basic architecture is as follows:
+
+```mermaid
+flowchart TD
+    subgraph Client["Client Agent"]
+        A1["A2A-T Client SDK<br><br>Prompt template generation: generate_task_prompt"]
+        A2["A2A Client SDK<br><br>Sends requests over HTTP/REST"]
+        A1 --> A2
+    end
+
+    subgraph Server["Server Agent"]
+        B1["A2A-T Server SDK<br><br>Compliance validation: check_task_prompt"]
+        B2["A2A Server SDK<br><br>Receives requests"]
+        B2 --> B1
+    end
+
+    Registry["Registry Center (registry-center)"]
+
+    A2 -- HTTPS --> B2
+    Client -. Register / Discover .-> Registry
+    Server -. Register / Discover .-> Registry
 ```
 
-### 1.3.2 Install Development Dependencies
 
-```bash
-uv sync --dev
+
+### 1.4.2 Sample API Description
+
+This basic development sample mainly uses the following two A2A-T SDK APIs. In actual development, select the appropriate APIs based on your business requirements:
+
+**1. A2A-T Client SDK**
+
+Interface definition and function description: recognizes the scenario from the input and generates the corresponding prompt template.
+
+```python
+def generate_task_prompt(self, user_input: str | dict[str, object]) -> PromptGenerationResult
 ```
 
-### 1.3.3 Prepare Configuration
+Sample call:
 
-```bash
-cp package_data/env.example package_data/.env
+```python
+client = A2ATClient()
+result = client.generate_task_prompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart")
+
+if result.success:
+    print(result.prompt_text)
+
+"""Output prompt template:
+## Subscription Description
+Based on the following <Notification Topic>, <Subscribe Condition>, <Notification Data Format>, and <Expected Output> information, complete the network-side intelligent fault Incident subscription and reporting task.
+
+## Notification Topic
+The name of this topic is "Incident"
+
+## Subscribe Condition
+Fault levels are "critical", "medium", "high", "low"
+
+## Notification Data Format
+Report Incident data via DataPart
+
+## Expected Output
+1. Subscription result, success or failure
+2. Reason for subscription failure (optional)
+"""
 ```
 
-Configuration example:
+**2. A2A-T Server SDK**
+
+Interface definition and function description:
+
+```python
+def check_task_prompt(self, *, processed_prompt_text: str) -> PromptComplianceResult
+```
+
+`PromptComplianceResult` is a dataclass with two attributes: `success: bool` and `failure: dict[str, str] | None` (carrying `code`, `message`, and `stage` on validation failure).
+
+Sample call: validates the completeness of an A2A-T protocol message.
+
+```python
+server = A2ATServer()
+result = server.check_task_prompt(processed_prompt_text="## Subscription Description Based on the following <Notification Topic>, <Subscribe Condition>, <Notification Data Format>, and <Expected Output> information, complete the network-side intelligent fault Incident subscription and reporting task. ## Notification Topic The name of this topic is \"Incident\" ## Subscribe Condition \n\n Fault levels are \"critical\", \"medium\", \"high\", \"low\" \n\n ## Notification Data Format \n\n Report Incident data via DataPart ## Expected Output 1. Subscription result, success or failure 2. Reason for subscription failure (optional)")
+
+if result.success:
+    print("prompt check passed")
+else:
+    print(result.failure)
+```
+
+### 1.4.3 Development Flow
+
+- Client development flow:
+
+```mermaid
+flowchart LR
+    Install dependencies --> Configure the LLM --> Initialize the A2A-T client --> Initialize the AgentCard --> AgentCard registration and discovery --> Generate the A2A-T template message --> Fill in the A2A-T request headers --> Send the request with A2A-T extensions
+```
+
+- Server development flow:
+
+```mermaid
+flowchart LR
+    Install dependencies --> Configure the LLM --> Initialize the A2A-T server --> Initialize the AgentCard --> AgentCard registration and discovery --> Receive and validate the message --> Internal business logic processing --> Fill in the A2A response headers --> Return the response
+```
+
+
+### 1.4.4 Sample Client Development Steps
+
+#### 1.4.4.1 Install Dependencies
+
+```bash
+# A2A-T SDK
+pip install a2a-t-sdk
+
+# Official A2A Python SDK
+pip install a2a-sdk
+```
+
+> Subsequent examples in this guide use `httpx` to demonstrate HTTP requests on the business-system side. `httpx` is not a dependency of `a2a-t-sdk`; business systems can replace it with `requests` or any other HTTP client.
+
+#### 1.4.4.2 Configure the LLM
+
+Copy the content of `package_data/env.example` into `package_data/.env` and configure it as follows:
 
 ```properties
-A2AT_LANGUAGE=zh-CN
+A2AT_LANGUAGE=en-US
 A2AT_PROMPT_SOURCE_TYPE=local_file
 A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=
 A2AT_PROMPT_COMPLIANCE_ENABLED=true
-A2AT_LLM_PROVIDER=deepseek
+A2AT_LLM_PROVIDER=openai
 A2AT_LLM_MODEL=deepseek-chat
-A2AT_LLM_API_KEY={your_api_key}
+A2AT_LLM_API_KEY={your_llm_api_key}
 A2AT_LLM_BASE_URL=https://api.deepseek.com
 A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory
 ```
 
-### 1.3.4 Verify the Project
+> `A2AT_LLM_API_KEY` is the key used to **call the external large language model**. Keep it safe.
+>
+> The SDK connects to external LLMs through OpenAI-compatible APIs. `A2AT_LLM_PROVIDER` currently only supports `openai`. To access DeepSeek or other OpenAI-compatible services, specify the service address via `A2AT_LLM_BASE_URL` and the model name via `A2AT_LLM_MODEL`.
 
-```bash
-uv run pytest
-uv run ruff check .
-uv run mypy src
-```
-
-## 1.4 SDK Basic Usage
-
-### 1.4.1 Dependency installation
-
-```bash
-pip install a2a-t-sdk
-```
-
-### 1.4.2 Client Generating Task Prompt
+#### 1.4.4.3 Initialize the A2A-T Client
 
 ```python
 from pathlib import Path
+from a2a_t.client.a2at_client import A2ATClient
 
+client = A2ATClient(env_path=Path("package_data/.env"))
+```
+
+Both `A2ATClient` and `A2ATServer` accept an `env_path` argument; when omitted, `package_data/.env` is read by default.
+
+#### 1.4.4.4 Initialize the AgentCard
+
+Reference client sample AgentCard definition:
+
+> The supported A2A-T templates can be declared in `extensions`.
+
+```json
+{
+  "agentCards": [
+    {
+      "name": "Transmission workbench agent",
+      "description": "Transmission network O&M management agent that provides capabilities such as circuit recovery verification, base station outage root cause analysis, and network element hidden danger inspection",
+      "supportedInterfaces": [
+        {
+          "url": "http://10.xx.xx.xx:26335/a2a/v1",
+          "protocolBinding": "HTTP+JSON",
+          "protocolVersion": "1.0"
+        }
+      ],
+      "provider": {
+        "organization": "ZzNode"
+      },
+      "version": "1.0.0",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": false,
+        "extensions": [
+          {
+            "uri": "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Task-T/v1",
+            "description": "Extension of structured prompt Task-T requests."
+          },
+          {
+            "uri": "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1",
+            "description": "Extension of structured prompt Notification-T requests."
+          }
+        ],
+        "extendedAgentCard": false
+      },
+      "securitySchemes": {
+        "bearerAuth": {
+          "httpAuthSecurityScheme": {
+            "description": "Query the accessSession through the login interface using the user name and password, then use the accessSession for bearer authentication.",
+            "scheme": "Bearer"
+          }
+        }
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "circuit-recovery-verification",
+          "name": "Circuit recovery verification agent",
+          "description": "Circuit service recovery verification skill. Uses the circuit name in the request, plugs it into a fixed JSON template, and returns the service recovery verification result. Use when the user mentions \"service recovery verification\", \"circuit recovery verification\", \"circuit recovery verification\", or similar requests. Applicable to scenarios where the service recovery status of a specified circuit needs to be confirmed.",
+          "tags": [
+            "circuit recovery verification",
+            "service recovery verification",
+            "circuit-recovery"
+          ],
+          "examples": [
+            "Please perform service recovery verification for circuits LYSPELC3 and SN3 Phase 2 - LYXLSJLT Building 1 10GE1049641NR",
+            "Perform service recovery verification for circuit XXX",
+            "circuit recovery verification for circuit XXX"
+          ],
+          "inputModes": [
+            "application/json",
+            "text/plain"
+          ],
+          "outputModes": [
+            "application/json",
+            "text/plain"
+          ]
+        },
+        {
+          "id": "ne-hidden-danger",
+          "name": "NE hidden danger inspection agent",
+          "description": "Network element hidden danger inspection skill. Inspects whether the specified network element still has new hidden dangers based on the input NE name. Use when the user mentions \"hidden danger inspection\", \"check hidden dangers\", \"NE inspection\", \"ne hidden danger\", or similar requests. Applicable to scenarios where the hidden-danger status of a specified network element needs to be checked.",
+          "tags": [
+            "NE inspection",
+            "hidden danger inspection",
+            "NE-inspection"
+          ],
+          "examples": [
+            "Please inspect whether NE QZHA-HAZBYSDGG-HRHH still produces new hidden dangers",
+            "Inspect whether NE XXX still has hidden dangers",
+            "Check if NE XXX has any hidden dangers"
+          ],
+          "inputModes": [
+            "application/json",
+            "text/plain"
+          ],
+          "outputModes": [
+            "application/json",
+            "text/plain"
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### 1.4.4.5 AgentCard Registration and Discovery
+
+- **AgentCard registration**: Publish the client AgentCard to the registry center. The registry center address and URI depend on the actual deployment.
+
+```python
+import httpx
+
+AGENT_CARD = {...}  # AgentCard JSON defined in 1.4.4.4
+
+def register_agent_card(registry_url: str, agent_card: dict) -> None:
+    resp = httpx.post(
+        registry_url,
+        json=agent_card,
+        timeout=10,
+    )
+    resp.raise_for_status()
+```
+
+- **AgentCard discovery**: Query the registry center by target Agent name or skill to obtain its AgentCard, which provides the `url` and supported skills.
+
+```python
+import httpx
+
+def discover_agent(discover_url: str, task: str) -> dict:
+    resp = httpx.post(
+        discover_url,
+        params={"task": task},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()["agentCards"][0]
+```
+
+#### 1.4.4.6 Generate the A2A-T Template Message
+
+The client uses the A2A-T Client SDK API to generate a processed_prompt, then sends it to the target agent as part of the A2A message.
+
+```python
 from a2a_t.client.a2at_client import A2ATClient
 
 client = A2ATClient(env_path=Path("package_data/.env"))
 
-result = client.generate_task_prompt(
-    {
-        "scenario": "subscribe_incident",
-        "objective": "Subscribe to incident notifications from network devices.",
-        "subscription_condition_incident_level": ["critical"],
-        "subscription_condition_incident_name": ["fiber break"],
-    }
-)
+# Generate the A2A-T prompt
+result = client.generate_task_prompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart")
+if not result.success:
+    raise RuntimeError(result.failure.to_dict())
 
-if result.success:
-    print(result.prompt_text)
-else:
-    print(result.failure.to_dict())
+processed_prompt = result.prompt_text
 ```
 
-### 1.4.3 Server Validating Task Prompt
+
+
+#### 1.4.4.7 Fill In A2A-T Request Headers
+
+The A2A protocol conveys the protocol version and extension declarations through HTTP headers. Use the following headers:
+
+| Header           | Direction        | Required                            | Value                                                                  |
+| ---------------- | ---------------- | ----------------------------------- | ---------------------------------------------------------------------- |
+| `A2A-Version`    | Request header   | Yes                                 | Protocol version, e.g. `1.0` (the client must include it in every request) |
+| `A2A-Extensions` | Request header   | No (recommended when using extensions) | Comma-separated list of extension URIs, declaring the extensions used by this request |
+
+Sample client request headers:
+
+```python
+import httpx
+
+NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+
+HEADERS = {
+    "Content-Type": "application/json",
+    "A2A-Version": "1.0",
+    "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
+}
+```
+
+#### 1.4.4.8 Send a Request with A2A-T Extensions
+
+```python
+import httpx
+
+from pathlib import Path
+from a2a_t.client.a2at_client import A2ATClient
+
+NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+
+ACCESS_TOKEN = "{your_access_token}"
+
+client = A2ATClient(env_path=Path("package_data/.env"))
+
+# 1) Generate the A2A-T prompt
+result = client.generate_task_prompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart")
+if not result.success:
+    raise RuntimeError(result.failure.to_dict())
+
+processed_prompt = result.prompt_text
+
+# 2) Send the task via A2A HTTP+JSON (headers declare the extension; the body carries the A2A-T extension field)
+resp = httpx.post(
+    "https://10.xx.xx.xx:27417/a2a/json",
+    headers={
+        "Content-Type": "application/json",
+        "A2A-Version": "1.0",
+        "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+    },
+    json={
+        "message": {
+            "messageId": "3ad1c0d9-2289-4f0c-9a19-addd10f49868",
+            "contextId": "d3310184-bd9b-477c-9e99-5a09b99680b4",
+            "role": "ROLE_USER",
+            "parts": [
+                {
+                    "text": "Create an intelligent fault Incident reporting task"
+                }
+            ],
+            "metadata": {
+                NOTIFICATION_PROMPT_EXT: processed_prompt
+            }
+        },
+        "configuration": {
+            "acceptedOutputModes": [
+                "text/plain"
+            ],
+            "historyLength": 10
+        }
+    },
+    timeout=30,
+)
+resp.raise_for_status()
+```
+
+#### 1.4.4.9 Complete Sample Client Code
+
+```python
+import httpx
+
+from pathlib import Path
+from a2a_t.client.a2at_client import A2ATClient
+
+NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+
+ACCESS_TOKEN = "{your_access_token}"
+
+AGENT_CARD = {...}  # AgentCard JSON defined in 1.4.4.4
+
+def register_agent_card(registry_url: str, agent_card: dict) -> None:
+    resp = httpx.post(
+        registry_url,
+        json=agent_card,
+        timeout=10,
+    )
+    resp.raise_for_status()
+
+def discover_agent(discover_url: str, task: str) -> dict:
+    resp = httpx.post(
+        discover_url,
+        params={"task": task},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()["agentCards"][0]
+
+# 1) Register the client AgentCard and discover the server AgentCard
+register_agent_card("{ip:port}/rest/v1/registry-center/agent-cards", AGENT_CARD)
+agent_card = discover_agent("{ip:port}/rest/v1/registry-center/agent-cards/semantic-query", task="Need to subscribe to faults")
+
+# 2) Use the SDK to generate the A2A-T prompt
+client = A2ATClient(env_path=Path("package_data/.env"))
+result = client.generate_task_prompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart")
+if not result.success:
+    raise RuntimeError(result.failure.to_dict())
+
+processed_prompt = result.prompt_text
+
+# 3) Send the task via A2A HTTP+JSON (headers declare the extension; the body carries the A2A-T extension field)
+resp = httpx.post(
+    agent_card["supportedInterfaces"][0]["url"],
+    headers={
+        "Content-Type": "application/json",
+        "A2A-Version": "1.0",
+        "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+    },
+    json={
+        "message": {
+            "messageId": "3ad1c0d9-2289-4f0c-9a19-addd10f49868",
+            "contextId": "d3310184-bd9b-477c-9e99-5a09b99680b4",
+            "role": "ROLE_USER",
+            "parts": [
+                {
+                    "text": "Create an intelligent fault Incident reporting task"
+                }
+            ],
+            "metadata": {
+                NOTIFICATION_PROMPT_EXT: processed_prompt
+            }
+        },
+        "configuration": {
+            "acceptedOutputModes": [
+                "text/plain"
+            ],
+            "historyLength": 10
+        }
+    },
+    timeout=30,
+)
+resp.raise_for_status()
+```
+
+### 1.4.5 Sample Server Development Steps
+
+#### 1.4.5.1 Prerequisites
+
+Steps such as installing dependencies, configuring the LLM, initializing the AgentCard, and AgentCard registration and discovery can be found in the [client implementation](#14141-install-dependencies). The differences are as follows:
+
+- Initialize the A2A-T server
 
 ```python
 from pathlib import Path
-
 from a2a_t.server.a2at_server import A2ATServer
 
 server = A2ATServer(env_path=Path("package_data/.env"))
-
-check_result = server.check_task_prompt(processed_prompt_text=prompt_text)
-if check_result["success"]:
-    print("prompt check passed")
-else:
-    print(check_result["failure"])
 ```
 
-### 1.4.4 Initiating Negotiation
+- Initialize the AgentCard. Reference server sample AgentCard definition:
 
-```python
-from a2a_t.negotiation.common.enums import NegotiationType
-from a2a_t.negotiation.common.models import StartNegotiationInput
-
-payload = server.start_negotiation(
-    StartNegotiationInput(
-        type=NegotiationType.INFORMATION,
-        content_text="Please provide incident level.",
-        facts={"missingFields": ["subscription_condition_incident_level"]},
-    )
-)
-```
-
-The negotiation response will contain negotiation text and context. The business system needs to pass the context along with the next round of A2A message to the peer, and subsequently advance the negotiation state through `receive_negotiation` and `continue_negotiation`.
-
-## 1.5 Complete Integration Development Flow
-
-### 1.5.1 Client Agent
-
-Client Agent typically follows this integration flow:
-
-1. Receive user natural language or structured input.
-2. Call `A2ATClient.generate_task_prompt` to generate a processed task prompt.
-3. Place the generated result into the A2A message body or extension fields.
-4. Send to the target Agent.
-5. If negotiation context is received, call `receive_negotiation` and `continue_negotiation` to generate the next round of message.
-
-Example:
-
-```python
-from pathlib import Path
-
-from a2a_t.client.a2at_client import A2ATClient
-from a2a_t.negotiation.common.enums import NegotiationStatus
-from a2a_t.negotiation.common.models import ContinueNegotiationInput, NegotiationContext
-
-client = A2ATClient(env_path=Path(".env"))
-
-prompt_result = client.generate_task_prompt(
+```json
+{
+  "agentCards": [
     {
-        "scenario": "subscribe_incident",
-        "objective": "Subscribe to incident notifications from network devices.",
+      "name": "RAN Domain Agent",
+      "description": "RAN Domain Agent",
+      "provider": {
+        "organization": "Huawei",
+        "url": "https://www.huawei.com"
+      },
+      "version": "1.0.0",
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": false,
+        "extendedAgentCard": false,
+        "extensions": [
+          {
+            "description": "Extension of structured prompt TASK-T requests.",
+            "required": false,
+            "uri": "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Task-T/v1"
+          },
+          {
+            "description": "Extension of structured prompt Notification-T requests.",
+            "required": false,
+            "uri": "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+          }
+        ]
+      },
+      "defaultInputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "application/json",
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "ran-incident-subscription",
+          "name": "Incident Reporting",
+          "description": "Supports Incident reporting and provides intelligent fault identification and diagnosis capabilities",
+          "tags": [
+            "Incident Reporting"
+          ],
+          "examples": [
+            "## Subscription Description\nBased on the following <Notification Topic>, <Subscribe Condition>, <Notification Data Format>, and <Expected Output> information, complete the network-side intelligent fault Incident subscription and reporting task.\n## Notification Topic\nThe name of this topic is \"Incident\"\n## Subscribe Condition\nFault level is \"high\"\n## Notification Data Format\nReport Incident data via DataPart\n## Expected Output\n1. Subscription result, success or failure\n2. Reason for subscription failure (optional)"
+          ],
+          "inputModes": [
+            "application/json",
+            "text/plain"
+          ],
+          "outputModes": [
+            "application/json",
+            "text/plain"
+          ]
+        }
+      ],
+      "securitySchemes": {
+        "bearerAuth": {
+          "httpAuthSecurityScheme": {
+            "scheme": "Bearer",
+            "description": "Query the accessSession through the login interface using the user name and password, then use the accessSession for bearer authentication."
+          }
+        }
+      },
+      "securityRequirements": [],
+      "supportedInterfaces": [
+        {
+          "protocolBinding": "JSONRPC",
+          "url": "https://10.xx.xx.xx:27417/a2a/v1",
+          "tenant": "",
+          "protocolVersion": "1.0"
+        },
+        {
+          "protocolBinding": "HTTP+JSON",
+          "url": "https://10.xx.xx.xx:27417/a2a/json",
+          "tenant": "",
+          "protocolVersion": "1.0"
+        }
+      ]
     }
-)
-
-if not prompt_result.success:
-    raise RuntimeError(prompt_result.failure.to_dict())
-
-processed_prompt = prompt_result.prompt_text
-
-# Continue negotiation after receiving server negotiation message
-receive_result = client.receive_negotiation(server_message, server_context)
-continue_payload = client.continue_negotiation(
-    ContinueNegotiationInput(
-        context=NegotiationContext.from_context(receive_result["context"]),
-        status=NegotiationStatus.IN_PROGRESS,
-        content_text=processed_prompt,
-    )
-)
+  ]
+}
 ```
 
-### 1.5.2 Server Agent
+#### 1.4.5.2 Receive and Validate the Message
 
-Server Agent typically follows this integration flow:
-
-1. Extract processed task prompt from the A2A request.
-2. Call `A2ATServer.check_task_prompt`.
-3. After validation passes, proceed to business execution.
-4. When validation fails or the business layer finds insufficient information, call `start_negotiation` or `continue_negotiation`.
-5. Return negotiation text and context to the client.
-
-Example:
+In the A2A business callback, the server extracts the processed task prompt from the message `metadata` field (keyed by the extension URI) and passes it to `A2ATServer.check_task_prompt` for validation:
 
 ```python
 from pathlib import Path
-
-from a2a_t.negotiation.common.enums import NegotiationType
-from a2a_t.negotiation.common.models import StartNegotiationInput
 from a2a_t.server.a2at_server import A2ATServer
 
-server = A2ATServer(env_path=Path(".env"))
-result = server.check_task_prompt(processed_prompt_text=processed_prompt)
+NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
 
-if result["success"]:
-    business_result = execute_business(processed_prompt)
-else:
-    negotiation_payload = server.start_negotiation(
-        StartNegotiationInput(
-            type=NegotiationType.INFORMATION,
-            content_text="Please provide missing subscription information.",
-            facts={"failure": result["failure"]},
-        )
+server = A2ATServer(env_path=Path("package_data/.env"))
+
+def handle_a2at_message(message: dict) -> dict:
+    processed_prompt = message.get("metadata", {}).get(NOTIFICATION_PROMPT_EXT)
+    if not processed_prompt:
+        return {"error": "missing A2A-T task prompt"}
+
+    check_result = server.check_task_prompt(processed_prompt_text=processed_prompt)
+    if check_result.success:
+        # Validation passed; proceed to business execution
+        return {"status": "accepted", "business": execute_business(processed_prompt)}
+    # Validation failed; failure carries code, message, and stage
+    return {"status": "rejected", "failure": check_result.failure}
+
+```
+
+#### 1.4.5.3 Fill In A2A Response Headers and Return the Response
+
+| Header           | Direction         | Required                            | Value                                                       |
+| ---------------- | ----------------- | ----------------------------------- | ----------------------------------------------------------- |
+| `A2A-Extensions` | Response header   | No (recommended when using extensions) | List of extension URIs actually participating on the server side (comma-separated) |
+
+```python
+from fastapi import FastAPI, Response
+
+NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+
+app = FastAPI()
+
+@app.post("/")
+def handle_message(payload: dict, response: Response):
+    response.headers["A2A-Extensions"] = NOTIFICATION_PROMPT_EXT
+    # ... business processing
+    return {"result": "ok"}
+```
+
+#### 1.4.5.4 Complete Sample Server Code
+
+```python
+from pathlib import Path
+import httpx
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from a2a_t.server.a2at_server import A2ATServer
+
+NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+
+AGENT_CARD = {...}  # AgentCard JSON defined in 1.4.5.1
+
+def register_agent_card(registry_url: str, agent_card: dict) -> None:
+    resp = httpx.post(
+        registry_url,
+        json=agent_card,
+        timeout=10,
     )
+    resp.raise_for_status()
+
+# 1) Register the server AgentCard
+register_agent_card("{ip:port}/rest/v1/registry-center/agent-cards", AGENT_CARD)
+
+API_KEYS = {"allowed-key-1"}
+
+def require_auth(authorization: str = Header(default="")) -> None:
+    if authorization.removeprefix("Bearer ").strip() not in API_KEYS:
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+app = FastAPI()
+server = A2ATServer(env_path=Path("package_data/.env"))
+
+@app.post("/")
+def handle_message(
+    payload: dict,
+    response: Response,
+    _: None = Depends(require_auth),
+    a2a_version: str | None = Header(default=None),
+):
+    # 2) Declare the actual participating A2A-T extension in the response headers
+    response.headers["A2A-Extensions"] = NOTIFICATION_PROMPT_EXT
+
+    if a2a_version != "1.0":
+        raise HTTPException(status_code=400, detail="unsupported A2A version")
+
+    # 3) Extract the A2A-T extension message (the prompt is in message.metadata, keyed by the extension URI)
+    message = payload["message"]
+    processed_prompt = message.get("metadata", {}).get(NOTIFICATION_PROMPT_EXT)
+    if not processed_prompt:
+        return {"error": "missing A2A-T task prompt"}
+
+    # 4) Use the SDK to validate completeness
+    check_result = server.check_task_prompt(processed_prompt_text=processed_prompt)
+    if check_result.success:
+        # 5) Validation passed; run the server-side business processing flow
+        return {"result": execute_business(processed_prompt)}
+    # Validation failed; failure carries code, message, and stage
+    return {"error": "prompt check failed", "failure": check_result.failure}
 ```
 
-## 1.6 Prompt Resource Extension
-### 1.6.1 File Extension
-
-When customizing scenarios, you need to prepare files consistent with the built-in resource structure:
-
-```text
-prompt_resources/
-  scenarios/zh-CN/scenarios.json
-  slots/{scenario_code}/zh-CN/slot.json
-  templates/{scenario_code}/zh-CN/template.md
-  prompts/scenario_recognition/zh-CN/system.md
-  prompts/scenario_recognition/zh-CN/user.md
-  prompts/slot_extraction/zh-CN/system.md
-  prompts/slot_extraction/zh-CN/user.md
-  prompts/semantic_validation/zh-CN/system.md
-  prompts/semantic_validation/zh-CN/user.md
-```
-
-Then configure in `.env`:
-
-```properties
-A2AT_PROMPT_SOURCE_TYPE=local_file
-A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR={your_prompt_resources_root}
-A2AT_LANGUAGE=zh-CN
-```
-
-It is recommended to supplement the following tests after adding new resources:
-
-1. Scenario recognition tests.
-2. Slot extraction tests.
-3. Slot JSON Schema validation tests.
-4. Client generation and server validation end-to-end tests.
-
-### 1.6.2 How to Define Prompt Templates
-#### 1.6.2.1 Core Value
-A2A-T structured Prompt provides a reusable structured approach for providing clear and consistent prompts to LLMs. By separating core logic from variable data, it makes interactions between agents more reliable, efficient, and scalable. The main benefits of using structured Prompts include:
-- 	Consistency: Ensures prompts follow a standardized format, making agent output more predictable.
--	Efficiency: Avoids writing each Prompt from scratch, saving time and effort. It also avoids repeating complex instructions.
--	Scalability: Makes it easier to generate prompts for various business scenarios.
--	Optimization: Allows templates to be refined and optimized for better results.
-
-#### 1.6.2.2 Classification of A2A-T Prompt Templates
-For agent communication in the telecom domain, to ensure the completeness of request content and improve reasoning efficiency and accuracy, A2A-T defines structured Prompt templates for each AN high-value scenario, and has published the industry A2A-T protocol standards at TMF:
-《IG1453A_Structured_Prompt_of_Agent_to_Agent_Protocol_for_Telecoms_A2AT_v1.0.0》
-《IG1453_Agent_to_Agent_Protocol_for_Telecoms_A2AT_v2.0.0》
-
-Structured Prompt template definitions are divided into two layers:
-- L0 Base Template:
-Defines the foundational framework for structured Prompts of ICT domain tasks, without specifying variables and ontologies for particular scenarios.
-L0 template list:
-
-	| Template Name | Description   |
-	|--|--|
-	|Task-T  | Defines the basic structure of ICT domain tasks, but does not specify commonly used variables and general ontology specifications for specific scenarios. Parsing of the base template relies on the LLM's reasoning capability and the Agent's context processing capability. |
-	|Notification-T |Defines a structured prompt-based network event subscription and reporting mechanism for the ICT domain. This mechanism ensures real-time awareness of network events and provides consistent task descriptions across different levels and domains through structured prompts. |
-
-- L1 Value Scenario Prompt Template:
-Built upon L0 templates, defines commonly used "variables" for different high-value scenario tasks, so that during task generation, agents can input corresponding content based on these variables, and during task execution, identify relevant content to improve reasoning efficiency and accuracy.
-
-#### 1.6.2.3 Core Composition Elements
-A complete A2A-T Prompt template generally contains the following two parts:
-1. Instruction
-	- Definition: Core directive or context.
-	- Purpose: Provides the basic requirements and framework for the task.
-	- Syntax: Uses ## to directly mark the instruction name (e.g., ## Task Description).
-2. Variable
-	- Definition: Dynamic slots, filled with specific data each time used.
-	- Purpose: Provides more specific information, improving reasoning efficiency.
-	- Syntax: Uses double curly braces {{}} to identify variable names (e.g., {{Fault Occurrence Time}}).
-
-##### 1.6.2.3.1 Instruction
-
-1. Instruction syntax requirements: When declaring an "instruction", use "##" for marking, followed by the name of the "instruction", so that the Agent can recognize it and perform content input or corresponding reasoning and execution.
-2. Instruction set: The structured Prompt defined by A2A-T has established the foundational framework for ICT task Prompt templates, deconstructing typical information of ICT tasks into the following instructions.
-
-
-|Instruction Name | Required/Optional|Description and Example |
-|--|--|--|
-| Task Description |	Required 	| Describes the basic requirements of the task. Example:<br> `## Task Description` <br> `Analyze the root cause of the fault based on "Target Object", "Task Context", and "Constraints", and provide repair suggestions. Please respond to the task according to the structure defined in "Expected Output".`
-|Task Type|Optional  |Identifies the task type (e.g., fault diagnosis, energy efficiency optimization). Example:<br>`## Task Type`<br>`Fault Diagnosis ` |
-|Target Object|Optional|  Describes the direct object of the task operation. Example:<br> `## Target Object`<br>`Fault identifier (fault-csn) is "OSS-FAULT-20250405-001".`|
-|Task Context|Optional  |Provides background information for task execution. Example:<br>`## Task Context`<br>`Fault occurrence time (occur-time) is "2025-04-05T14:30:00Z". ` |
-| Expected Output|Optional  | Defines the format of the expected result. Example:<br>`## Expected Output`<br> `Fault diagnosis results should include the following information: 1. Diagnosis status: success or failure 2. Fault diagnosis analysis results 3. Repair suggestions 4. Fault root cause list 5. Domain-specific information` |
-
-##### 1.6.2.3.2 Variable
-1. Variable syntax requirements: When using "variables", use double curly braces "{{}}" for identification, and place the variable name inside the double curly braces, so that the agent can recognize it and perform content input or corresponding reasoning and execution.
-2. Variable instantiation methods: Variables need to be correctly instantiated to deliver value; two methods are recommended
-	- Natural language subject-verb-object structure: The fault occurred on January 8, 2026 at 16:38:18
-	- Key-value concise format: Fault Occurrence Time: 2026/1/8/16:38:18
-3. Common variable set:
-Based on best practices, A2A-T has summarized commonly used variables in AN L4 high-value scenarios, which help effectively describe tasks in AN L4 high-value scenarios:
-	|Variable Name | Required/Optional|Description and Example |
-	|--|--|--|
-	| Identifier |	Required 	| Used to specify the target identifier associated with the task.<br> Example:<br>`## Target Object`<br> `{{Identifier}}` <br>Its instantiation example is as follows: <br>`## Target Object`<br>`Fault identifier (fault-csn) is "OSS-FAULT-20250405-001".`
-	|Affected Object|Optional  |Used to specify the network resource object affected by the fault.<br>Example:<br>`## Task Context`<br>`{{Affected Object}}`<br>Its instantiation example is as follows:<br>`## Task Context `<br>`The ID of the affected object is "BTS-001", the type is "Base Station Transceiver", the name is "Base Station 001", and the location is "Chaoyang District, Beijing".` |
-	|Related Information|Optional| Its general ontology can be a list of events or alarms related to the fault.<br> Example:<br>`## Task Context `<br>`{{Related Information}} `<br>Its instantiation example is as follows:<br>`## Task Context`<br>`The associated alarm list is as follows: - Alarm identifier (alarm-csn) is "ALM-20250405-001", alarm ID (alarm-id) is "ALM-001", alarm name is "Base Station Signal Loss", network element name is "BTS-001", alarm location is "Chaoyang District, Beijing", alarm occurrence time (alarm-create-time) is "2025-04-05T14:28:00Z". - Alarm identifier (alarm-csn) is "ALM-20250405-002", alarm ID (alarm-id) is "ALM-002", alarm name is "Transmission Link Interruption", network element name is "TRX-002", alarm location is "Haidian District, Beijing", alarm occurrence time (alarm-create-time) is "2025-04-05T14:29:00Z".`|
-	|Fault Occurrence Time| Required | Its general ontology is the time when the fault occurred.<br>Example:<br>`## Task Context `<br>`{{Related Information}}`<br>Its instantiation example is as follows:<br>`## Task Context `<br>`Fault occurrence time is "2025-04-05T14:30:00Z".` |
-	| Fault Context Object | Required  | Its general ontology can be fault pre-processing information from OSS, or alarm reporting information from EMS.<br>Example:<br>`## Task Context`<br>`{{Fault Context Object}}`<br>Its instantiation example is as follows:<br>`## Task Context `<br>`Fault context object is: "Alarm Management System: FMC, Alarm Location: Beijing, Alarm Name: Base Station Signal Loss, Alarm Time: 2025-04-05T14:28:00Z, Alarm Network Element: BTS-001".` |
-    
-#### 1.6.2.4 Format and Specification
-A2A-T requires syntax format specifications for commonly used text formats, including paragraphs, lists, and links, using Markdown format to ensure structured and readable output:
-- Paragraph: Separate text blocks with blank lines
-- Ordered list: Number followed by period (1. Item One)
-- Unordered list: Dash prefix (- Item One)
-- Link: Square brackets followed by parentheses ([Text](Link))
-
-##### 1.6.2.4.1 Paragraph
-To create a paragraph, you can use blank lines to separate one or more lines of text. Example:
-```
-## Task Description
-Handle 5G service fault in Community A
-
-Complete service recovery
-
-Identify the root cause of the fault and perform repair
-```
-
-##### 1.6.2.4.2 Ordered List
-To create an ordered list, add items represented by numbers followed by periods. The numbers do not need to be in sequential order, but the list should start with the number 1. Example:
-```
-## Expected Output 
-1. Bar
-2. Foo
-```
-
-##### 1.6.2.4.3 Unordered List
-To create an unordered list, add a dash (-) before each line item. Indent one or more items to create a nested list. Example:
-```
-## Expected Output
-- Item
-  - Item1
-- Bar2
-- Foo
-```
-##### 1.6.2.4.4 Link
-To create a link, enter the link text in square brackets, followed immediately by the URL enclosed in parentheses. Example:
-```
-## Task Description
-Handle the issue where [TM Forum AN] (Autonomous Network Project Homepage) cannot be loaded.
-```
-
-
-#### 1.6.2.5 Steps for Template Definition
-It is recommended to follow these steps to define prompt templates:
-1.	Determine the task type: Clarify the task type and collaboration mode of the current business scenario, and locate the corresponding template category from the A2A-T task classification system (e.g., Task-T);
-2.	Write necessary instructions: Select key instructions, and use a structured format to declare task objectives, execution conditions, input parameters, expected output, etc.;
-3.	Fill in common variables: Declare the specific parameters involved in this task instance; variable references must follow A2A-T variable syntax specifications;
-4.	Bind context information: Supplement the context information required for the agent to complete the task;
-5.	Set output definition: Clearly define output format, acceptance criteria, and exception handling rules;
-6.	Verify template completeness: Conduct sufficient testing in actual cross-model environments to verify syntax compliance and cross-LLM compatibility;
-7.	Version iteration optimization: Incorporate validated templates into the version management system for continuous governance, iteration, and evolution.
+## 1.5 FAQ

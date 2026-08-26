@@ -17,7 +17,7 @@ Main capabilities include:
 
 - **Task Prompt Generation**: The client generates a processed task prompt conforming to the A2A-T format based on natural language or structured input.
 - **Server Prompt Validation**: The server validates whether the processed task prompt submitted by the client matches the scenario, template, and slot constraints.
-- **Multi-round Negotiation**: Supports negotiation processes: `information`.
+- **Multi-round Negotiation**: Supports `information`, `feasibility`, and `target` negotiation processes.
 - **Prompt Resource Management**: Built-in scenario, slot, template, and system prompt resources, with support for local file resource loading.
 - **LLM Adaptation**: Connects to external large language models through OpenAI-compatible API calls.
 
@@ -69,12 +69,14 @@ A2AT_LANGUAGE=zh-CN
 A2AT_PROMPT_SOURCE_TYPE=local_file
 A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=
 A2AT_PROMPT_COMPLIANCE_ENABLED=true
-A2AT_LLM_PROVIDER=deepseek
+A2AT_LLM_PROVIDER=openai
 A2AT_LLM_MODEL=deepseek-chat
 A2AT_LLM_API_KEY={your_api_key}
 A2AT_LLM_BASE_URL=https://api.deepseek.com
 A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory
 ```
+
+> The SDK connects to external LLMs through OpenAI-compatible APIs. `A2AT_LLM_PROVIDER` currently only supports `openai`. To access DeepSeek or other OpenAI-compatible services, specify the service address via `A2AT_LLM_BASE_URL` and the model name via `A2AT_LLM_MODEL`.
 
 If `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` is empty, the SDK uses the built-in package resources by default. When custom scenarios, slots, or templates are needed, set this configuration to point to the custom resource root directory.
 
@@ -86,7 +88,7 @@ If `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` is empty, the SDK uses the built-in pac
 | `A2AT_PROMPT_SOURCE_TYPE`             | Prompt resource source, currently supports `local_file`   |
 | `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` | Custom prompt resource root directory                     |
 | `A2AT_PROMPT_COMPLIANCE_ENABLED`      | Whether to enable server prompt compliance validation     |
-| `A2AT_LLM_PROVIDER`                   | LLM provider                                              |
+| `A2AT_LLM_PROVIDER`                   | LLM provider, currently only supports `openai` (OpenAI-compatible) |
 | `A2AT_LLM_MODEL`                      | Model name                                                |
 | `A2AT_LLM_API_KEY`                    | LLM API Key                                               |
 | `A2AT_LLM_BASE_URL`                   | LLM service address                                       |
