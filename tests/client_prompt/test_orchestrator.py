@@ -42,7 +42,7 @@ class FakeScenarioLoader:
     def load(self, *, language: str) -> list[ScenarioDefinition]:
         return [
             ScenarioDefinition(
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 scenario_name="Energy Saving",
                 description="Used for energy saving analysis.",
                 example="Analyze site power usage and suggest optimization.",
@@ -73,7 +73,7 @@ class FakeSlotSchemaLoader:
     def load(self, *, reference: PromptReference) -> SlotSchema:
         self.last_reference = reference
         return SlotSchema(
-            scenario_code="energy-saving",
+            scenario_code="ran-energy-saving",
             slots=[
                 SlotDefinition(
                     name="site",
@@ -239,9 +239,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
                 scenario_resolver=FakeScenarioResolver(
                     ScenarioResolutionResult(
                         success=True,
-                        reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                        reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                         scenario=ScenarioDefinition(
-                            scenario_code="energy-saving",
+                            scenario_code="ran-energy-saving",
                             scenario_name="Energy Saving",
                             description="Used for energy saving analysis.",
                             example="Analyze site power usage and suggest optimization.",
@@ -260,9 +260,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=ScenarioResolutionResult(
                 success=True,
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 scenario=ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Used for energy saving analysis.",
                     example="Analyze site power usage and suggest optimization.",
@@ -279,15 +279,15 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         self.assertTrue(result.success)
         self.assertEqual(
             self.template_loader.last_reference,
-            PromptReference(scenario_code="energy-saving", language="en-US"),
+            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
         )
         self.assertEqual(
             self.slot_schema_loader.last_reference,
-            PromptReference(scenario_code="energy-saving", language="en-US"),
+            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
         )
         self.assertEqual(
             self.slot_extractor.last_reference,
-            PromptReference(scenario_code="energy-saving", language="en-US"),
+            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
         )
         self.assertIsNone(result.failure)
         self.assertEqual(result.prompt_text, "Site: Site A\nNotes: ")
@@ -297,9 +297,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=ScenarioResolutionResult(
                 success=True,
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 scenario=ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Used for energy saving analysis.",
                     example="Analyze site power usage and suggest optimization.",
@@ -320,9 +320,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=ScenarioResolutionResult(
                 success=True,
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 scenario=ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Used for energy saving analysis.",
                     example="Analyze site power usage and suggest optimization.",
@@ -387,9 +387,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=ScenarioResolutionResult(
                 success=True,
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 scenario=ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Used for energy saving analysis.",
                     example="Analyze site power usage and suggest optimization.",
@@ -420,9 +420,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=ScenarioResolutionResult(
                 success=True,
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 scenario=ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Used for energy saving analysis.",
                     example="Analyze site power usage and suggest optimization.",
@@ -443,9 +443,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=ScenarioResolutionResult(
                 success=True,
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 scenario=ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Used for energy saving analysis.",
                     example="Analyze site power usage and suggest optimization.",
@@ -468,9 +468,9 @@ class PromptGenerationOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=ScenarioResolutionResult(
                 success=True,
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 scenario=ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Used for energy saving analysis.",
                     example="Analyze site power usage and suggest optimization.",

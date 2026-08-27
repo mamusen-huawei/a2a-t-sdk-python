@@ -1,5 +1,7 @@
+Negotiation phase: [phase]
 Declared negotiation type: [negotiation_type]
 Declared template identifier: [template_uri]
+Template content: [template_content]
 
 Parameter schema:
 [schema]

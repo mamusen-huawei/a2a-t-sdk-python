@@ -25,7 +25,7 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
         prompt_text = format_task_prompt(
             body="Site: Site A",
             metadata=TaskPromptMetadata(
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 language="en-US",
                 description="Used for energy saving analysis.",
             ),
@@ -35,14 +35,14 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
         self.assertEqual(
             metadata,
             TaskPromptMetadata(
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 language="en-US",
                 description="Used for energy saving analysis.",
             ),
         )
         self.assertEqual(
             metadata.to_prompt_reference(),
-            PromptReference(scenario_code="energy-saving", language="en-US"),
+            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
         )
 
     def test_parse_rejects_missing_language(self) -> None:
@@ -52,7 +52,7 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
         with self.assertRaises(TaskPromptFormatError) as context:
             parse_task_prompt_metadata(
                 "---\n"
-                "scenario_code: energy-saving\n"
+                "scenario_code: ran-energy-saving\n"
                 "description: Used for energy saving analysis.\n"
                 "---\n\n"
                 "Site: Site A"
@@ -67,7 +67,7 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
         with self.assertRaises(TaskPromptFormatError) as context:
             parse_task_prompt_metadata(
                 "---\n"
-                "scenario_code: energy-saving\n"
+                "scenario_code: ran-energy-saving\n"
                 "language: en-US\n"
                 "---\n\n"
                 "Site: Site A"
@@ -82,7 +82,7 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
         with self.assertRaises(TaskPromptFormatError) as context:
             parse_task_prompt_metadata(
                 "---\n"
-                "scenario_code: energy-saving\n"
+                "scenario_code: ran-energy-saving\n"
                 "language:    \n"
                 "description: Used for energy saving analysis.\n"
                 "---\n\n"
@@ -98,7 +98,7 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
         with self.assertRaises(TaskPromptFormatError) as context:
             parse_task_prompt_metadata(
                 "---\n"
-                "scenario_code: energy-saving\n"
+                "scenario_code: ran-energy-saving\n"
                 "language: en-US\n"
                 "description:    \n"
                 "---\n\n"

@@ -39,7 +39,7 @@ class SlotExtractorTest(unittest.TestCase):
         from a2a_t.prompt.analysis.slot_extractor import SlotExtractor
 
         slot_schema = SlotSchema(
-            scenario_code="energy-saving",
+            scenario_code="ran-energy-saving",
             slots=[
                 SlotDefinition(
                     name="site",
@@ -69,7 +69,7 @@ class SlotExtractorTest(unittest.TestCase):
 
         result = extractor.extract(
             normalized_input="Analyze Site A and focus on power system.",
-            reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+            reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
             template_text="Site: {site}\nNotes: {additional_notes}",
             slot_schema=slot_schema,
             system_prompt="Extract slots.",
@@ -130,10 +130,10 @@ class SlotExtractorTest(unittest.TestCase):
         with self.assertRaises(SlotExtractionError):
             extractor.extract(
                 normalized_input="Analyze Site A.",
-                reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                 template_text="Site: {site}",
                 slot_schema=SlotSchema(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     slots=[
                         SlotDefinition(
                             name="site",
@@ -166,10 +166,10 @@ class SlotExtractorTest(unittest.TestCase):
 
         result = extractor.extract(
             normalized_input="Analyze Site A.",
-            reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+            reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
             template_text="Site: {site}",
             slot_schema=SlotSchema(
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 slots=[
                     SlotDefinition(
                         name="site",

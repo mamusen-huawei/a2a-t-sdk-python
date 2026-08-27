@@ -84,7 +84,7 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=[
                 ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Energy saving analysis tasks.",
                     example="Analyze site power usage and suggest optimization.",
@@ -93,7 +93,7 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
             prompt_result=PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario."),
             recognition_result=ScenarioRecognitionResult(
                 matched=True,
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 error_message=None,
             ),
         )
@@ -102,9 +102,9 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
 
         self.assertTrue(result.success)
         self.assertIsNone(result.failure)
-        self.assertEqual(result.reference.scenario_code, "energy-saving")
+        self.assertEqual(result.reference.scenario_code, "ran-energy-saving")
         self.assertEqual(result.reference.language, "zh-CN")
-        self.assertEqual(result.scenario.scenario_code, "energy-saving")
+        self.assertEqual(result.scenario.scenario_code, "ran-energy-saving")
         self.assertEqual(
             self.scenario_loader.calls,
             [{"language": "zh-CN"}],
@@ -119,7 +119,7 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=[
                 ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Energy saving analysis tasks.",
                     example="Analyze site power usage and suggest optimization.",
@@ -146,7 +146,7 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=[
                 ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Energy saving analysis tasks.",
                     example="Analyze site power usage and suggest optimization.",
@@ -176,7 +176,7 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
             prompt_result=PromptResourceNotFoundError("Scenario recognition prompt resources are missing."),
             recognition_result=ScenarioRecognitionResult(
                 matched=True,
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 error_message=None,
             ),
         )
@@ -192,7 +192,7 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
         orchestrator = self._build_orchestrator(
             scenario_result=[
                 ScenarioDefinition(
-                    scenario_code="energy-saving",
+                    scenario_code="ran-energy-saving",
                     scenario_name="Energy Saving",
                     description="Energy saving analysis tasks.",
                     example="Analyze site power usage and suggest optimization.",

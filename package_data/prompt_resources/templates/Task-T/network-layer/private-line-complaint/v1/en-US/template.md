@@ -10,11 +10,11 @@ Diagnose network-side faults and return diagnostic result information such as fa
 ## Task Object
 {{task_object}} (required)
 Requirement: Supports passing in private line service name / private line service identifier / private line service access port name. Choose one of these methods to identify the private line service object
-1. Private line service name: the private line service name on the network side. Example: Huizhou Jiangbei Aggregation Private Line Service_100M_SPN (optional)
+1. Private line service name: the private line service name on the network side. Example: SZ_Aggregation_Private_Line_Service_100M_SPN (optional)
 2. Private line service identifier: the unique identifier of the private line service on the network side. Example: 5571d707-5aad-11ea-8629-286ed488cff3 (optional)
 3. Access port name: the access port name of the service, which can be a physical port or a logical port (sub-interface) (optional)
-   - Physical port format: network element name + board number + board model + port number. Example: P781-Zhujiang New Town-PTN7900-23-TPA1EG24-17
-   - Logical port format: network element name + board number + board model + port number (cvlan=access vlan id). Example: P781-Zhujiang New Town-PTN7900-23-TPA1EG24-17(cvlan=100)
+   - Physical port format: network element name + board number + board model + port number. Example: P180-SZ-PTN7900-23-TPA1EG24-17
+   - Logical port format: network element name + board number + board model + port number (cvlan=access vlan id). Example: P180-SZ-PTN7900-23-TPA1EG24-17(cvlan=100)
 
 ## Task Context
 {{task_context}} (required)
@@ -22,7 +22,7 @@ Requirement: Please provide the following information
 1. Complaint category: includes two scenarios, "private line interruption" and "poor private line quality". Example: "poor private line quality" (required)
 2. Problem occurrence time. Example: "2026-05-16T08:21:46Z" (optional)
 3. OSS-side event sequence number: fill in the private line service complaint work order sequence number on the OSS side. Example: "event-id-20260511-09013" (required)
-4. Complaint details: may include the private line user's description of the service complaint and the OSS-side preprocessing information. Example: "Starting from 8:30 this morning, the response latency from Shenzhen to Shanghai suddenly increased from an average of 12ms to 320ms. Accessing the core trading system of the Shanghai data center is very slow. The trading interfaces of the counter and mobile banking frequently report 'connection timeout'. Normal business operations take a dozen seconds or even half a minute to return results!" (optional)
+4. Complaint details: may include the private line user's description of the service complaint and the OSS-side preprocessing information. Example: "Starting from 8:30 this morning, the response latency from SZ to GZ suddenly increased from an average of 12ms to 320ms. Accessing the core trading system of the GZ data center is very slow. The trading interfaces of the counter and mobile banking frequently report 'connection timeout'. Normal business operations take a dozen seconds or even half a minute to return results!" (optional)
 
 ## Expected Output
 Requirement: The complaint diagnosis task result should include the following information:
@@ -30,3 +30,9 @@ Requirement: The complaint diagnosis task result should include the following in
 2. Diagnosis result details (required)
 3. Repair suggestions (optional)
 4. Fault root cause list, where each fault root cause includes fault root cause name, detailed description, repair suggestions, fault root cause point location, etc. (optional)
+
+## Terminology Explanation
+1. Private line interruption
+   - Synonyms: private line interruption, service interruption, network unreachable, service down, service inaccessible
+2. Poor private line quality
+   - Synonyms: private line poor quality, service stutter, service access timeout, service packet loss, service high latency, service jitter, service congestion, service experience degradation, service high error rate, service optical power abnormal

@@ -31,6 +31,7 @@
 ## 参数提取任务
 - 按用户提示词中给出的参数 schema，从报文内容中提取参数并填充 params 对象。
 - params 的属性名与结构必须遵循参数 schema；无法从报文中提取到的属性输出 null。
+- 当报文结论为 Reject 时，参数 schema 中各字段的取值为该字段在报文中说明的无法提供的原因文本，而不是 null——原因就是该字段在本轮协商中传递的内容。
 - 参数提取结果不影响 semantic_verdict；semantic_verdict 只由校验任务 1-6 决定。
 
 ## slot_name 规范

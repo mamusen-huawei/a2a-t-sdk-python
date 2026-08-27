@@ -1,5 +1,7 @@
+协商阶段：[phase]
 声明的协商类型：[negotiation_type]
 声明的模板标识：[template_uri]
+模板正文：[template_content]
 
 参数 schema：
 [schema]

@@ -21,6 +21,6 @@
     }
   },
   "required": [
-    "task_context"
+    "task_context", "task_object"
   ]
 }
