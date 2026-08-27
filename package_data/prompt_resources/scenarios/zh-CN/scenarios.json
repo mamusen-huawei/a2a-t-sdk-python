@@ -7,7 +7,7 @@
       "example": "帮我生成一个 Incident 订阅任务：订阅基站设备的光纤中断和尾纤故障，只看 critical 和 high，通过 DataPart 上报。"
     },
     {
-      "scenario_code": "energy-saving",
+      "scenario_code": "ran-energy-saving",
       "scenario_name": "能效优化任务下发",
       "description": "用于生成电信网管系统中 能效优化任务的 A2A-T 任务请求。",
       "example": "实现松山湖区域30%的能耗降低，同时确保速率保障不低于50Mbps。"

@@ -81,11 +81,11 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
         path.write_text(content, encoding="utf-8")
 
     def test_handler_check_task_prompt_succeeds_with_real_shared_components(self) -> None:
-        self._write_resource_file("templates/Task-T/network-layer/energy-saving/v1/en-US/template.md", "Site: {site}")
+        self._write_resource_file("templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}")
         self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
         self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
         self._write_resource_file(
-            "slots/Task-T/network-layer/energy-saving/v1/en-US/slot.json",
+            "slots/Task-T/network-layer/ran-energy-saving/v1/en-US/slot.json",
             json.dumps(
                 {
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -110,9 +110,9 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             scenario_resolver=FakeScenarioResolver(
                 ScenarioResolutionResult(
                     success=True,
-                    reference=PromptReference(scenario_code="energy-saving", language="en-US"),
+                    reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
                     scenario=ScenarioDefinition(
-                        scenario_code="energy-saving",
+                        scenario_code="ran-energy-saving",
                         scenario_name="Energy Saving",
                         description="Used for energy saving analysis.",
                         example="Analyze site power usage and suggest optimization.",

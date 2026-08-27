@@ -241,7 +241,7 @@ class A2ATServerPromptResourceTimingTest(ManagedTempDirTestCase):
 
         self._write_resource_file(
             "scenarios/en-US/scenarios.json",
-            '{"scenarios":[{"scenario_code":"energy-saving","scenario_name":"Energy Saving","description":"Used for energy saving analysis.","example":"Analyze site power usage and suggest optimization."}]}',
+            '{"scenarios":[{"scenario_code":"ran-energy-saving","scenario_name":"Energy Saving","description":"Used for energy saving analysis.","example":"Analyze site power usage and suggest optimization."}]}',
         )
         env_path = self._write_env()
         missing_packaged_root = self.make_temp_dir("missing_packaged_prompts_server")

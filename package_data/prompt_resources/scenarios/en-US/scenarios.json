@@ -7,7 +7,7 @@
       "example": "Help me generate an Incident subscription task: subscribe to fiber break and pigtail fault for base station equipment, only critical and high severity, reported via DataPart."
     },
     {
-      "scenario_code": "energy-saving",
+      "scenario_code": "ran-energy-saving",
       "scenario_name": "Energy Efficiency Optimization Task",
       "description": "Used to generate an A2A-T task request for an energy efficiency optimization task in a telecom network management system.",
       "example": "Achieve a 30% energy consumption reduction in the Songshanhu area while ensuring the rate guarantee is no less than 50Mbps."

@@ -163,11 +163,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
         self.scenario_resolution = ScenarioResolutionResult(
             success=True,
             reference=PromptReference(
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 language="en-US",
             ),
             scenario=ScenarioDefinition(
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 scenario_name="Energy Saving",
                 description="Used for energy saving analysis.",
                 example="Analyze site power usage and suggest optimization.",
@@ -176,7 +176,7 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
 
     def _slot_schema(self) -> SlotSchema:
         return SlotSchema(
-            scenario_code="energy-saving",
+            scenario_code="ran-energy-saving",
             slots=[
                 SlotDefinition(
                     name="site",
@@ -231,16 +231,16 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
 
         result = service.check(processed_prompt_text=self.processed_prompt)
 
-        self.assertEqual(template_loader.last_reference, PromptReference(scenario_code="energy-saving", language="en-US"))
+        self.assertEqual(template_loader.last_reference, PromptReference(scenario_code="ran-energy-saving", language="en-US"))
         self.assertEqual(
             slot_schema_loader.last_json_schema_reference,
-            PromptReference(scenario_code="energy-saving", language="en-US"),
+            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
         )
         self.assertEqual(
             slot_schema_loader.last_slot_schema_reference,
-            PromptReference(scenario_code="energy-saving", language="en-US"),
+            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
         )
-        self.assertEqual(extractor.last_reference, PromptReference(scenario_code="energy-saving", language="en-US"))
+        self.assertEqual(extractor.last_reference, PromptReference(scenario_code="ran-energy-saving", language="en-US"))
         self.assertEqual(
             result,
             PromptComplianceResult(

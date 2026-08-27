@@ -28,6 +28,7 @@ TASK_HEADINGS = {
     "Constraints",
     "Expected Output",
     "Operation Type",
+    "Terminology Explanation",
 }
 NOTIFICATION_HEADINGS = {
     "Subscription Description",
@@ -52,6 +53,7 @@ HEADING_ALIASES = {
     "约束条件": "Constraints",
     "预期输出": "Expected Output",
     "操作类型": "Operation Type",
+    "术语解释": "Terminology Explanation",
     "订阅描述": "Subscription Description",
     "通知主题": "Notification Topic",
     "订阅条件": "Subscribe Condition",

@@ -51,7 +51,7 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
                 {
                     "scenarios": [
                         {
-                            "scenario_code": "energy-saving",
+                            "scenario_code": "ran-energy-saving",
                             "scenario_name": "Energy Saving",
                             "description": "Used for energy saving analysis.",
                             "example": "Analyze site power usage and suggest optimization.",
@@ -65,12 +65,12 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
         self._write_resource_file("prompts/scenario_recognition/en-US/user.md", "Choose scenario.")
         self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
         self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
-        self._write_resource_file("templates/Task-T/network-layer/energy-saving/v1/en-US/template.md", "Site: {site}\nNotes: {additional_notes}")
+        self._write_resource_file("templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}\nNotes: {additional_notes}")
         self._write_resource_file(
-            "slots/Task-T/network-layer/energy-saving/v1/en-US/slot.json",
+            "slots/Task-T/network-layer/ran-energy-saving/v1/en-US/slot.json",
             json.dumps(
                 {
-                    "scenario_code": "energy-saving",
+                    "scenario_code": "ran-energy-saving",
                     "slots": [
                         {
                             "name": "site",
@@ -102,7 +102,7 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
 
         llm_client = FakeSequencedLLMClient(
             [
-                '{"matched": true, "scenario_code": "energy-saving", "error_message": null}',
+                '{"matched": true, "scenario_code": "ran-energy-saving", "error_message": null}',
                 '{"slots": {"site": "Site A", "additional_notes": null}, "slot_errors": []}',
             ]
         )
@@ -136,7 +136,7 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
                 {
                     "scenarios": [
                         {
-                            "scenario_code": "energy-saving",
+                            "scenario_code": "ran-energy-saving",
                             "scenario_name": "Energy Saving",
                             "description": "Used for energy saving analysis.",
                             "example": "Analyze site power usage and suggest optimization.",
@@ -150,7 +150,7 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
         self._write_resource_file("prompts/scenario_recognition/en-US/user.md", "Choose scenario.")
 
         llm_client = FakeSequencedLLMClient(
-            ['{"matched": true, "scenario_code": "energy-saving", "error_message": null}']
+            ['{"matched": true, "scenario_code": "ran-energy-saving", "error_message": null}']
         )
 
         from a2a_t.client.prompt_generation.prompt_generation_orchestrator import PromptGenerationOrchestrator

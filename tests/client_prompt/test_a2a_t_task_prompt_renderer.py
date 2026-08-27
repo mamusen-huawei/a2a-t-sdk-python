@@ -19,7 +19,7 @@ class A2ATTaskPromptRendererTest(unittest.TestCase):
         prompt_text = renderer.render(
             template_text="Site: {site}\nNotes: {additional_notes}",
             slots={"site": "Site A", "additional_notes": None},
-            scenario_code="energy-saving",
+            scenario_code="ran-energy-saving",
             language="en-US",
             description="Used for energy saving analysis.",
         )
@@ -113,7 +113,7 @@ class A2ATTaskPromptRendererTest(unittest.TestCase):
             renderer.render(
                 template_text="Site: {site}\nTime Range: {time_range}",
                 slots={"site": "Site A"},
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 language="en-US",
                 description="Used for energy saving analysis.",
             )
@@ -128,7 +128,7 @@ class A2ATTaskPromptRendererTest(unittest.TestCase):
             renderer.render(
                 template_text="Site: {site",
                 slots={"site": "Site A"},
-                scenario_code="energy-saving",
+                scenario_code="ran-energy-saving",
                 language="en-US",
                 description="Used for energy saving analysis.",
             )
