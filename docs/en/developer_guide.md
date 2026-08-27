@@ -220,7 +220,11 @@ pip install a2a-t-sdk
 pip install a2a-sdk
 ```
 
-> Subsequent examples in this guide use `httpx` to demonstrate HTTP requests on the business-system side. `httpx` is not a dependency of `a2a-t-sdk`; business systems can replace it with `requests` or any other HTTP client.
+> Request sending, response consumption, and server-side route assembly use the official `a2a-sdk` (whose transport layer depends on `httpx`). The registry center is outside the scope of the official SDK; this guide interacts with it directly using `httpx`, which business systems can replace with `requests` or any other HTTP client. Starting the HTTP service on the server side additionally requires `uvicorn`:
+>
+> ```bash
+> pip install uvicorn
+> ```
 
 #### 1.4.4.2 Configure the LLM
 
@@ -360,6 +364,15 @@ Reference client sample AgentCard definition:
 }
 ```
 
+AgentCards are stored in the registry center as JSON. When constructing the official A2A client or assembling server-side routes, convert the JSON into the official SDK's `a2a.types.AgentCard` object:
+
+```python
+from a2a.types import AgentCard
+from google.protobuf.json_format import ParseDict
+
+agent_card = ParseDict(agent_card_dict, AgentCard())
+```
+
 #### 1.4.4.5 AgentCard Registration and Discovery
 
 - **AgentCard registration**: Publish the client AgentCard to the registry center. The registry center address and URI depend on the actual deployment.
@@ -421,83 +434,100 @@ The A2A protocol conveys the protocol version and extension declarations through
 | `A2A-Version`    | Request header   | Yes                                 | Protocol version, e.g. `1.0` (the client must include it in every request) |
 | `A2A-Extensions` | Request header   | No (recommended when using extensions) | Comma-separated list of extension URIs, declaring the extensions used by this request |
 
-Sample client request headers:
+When using the official A2A Client, request headers are passed in through `ClientCallContext.service_parameters` (the key-value pairs are sent as HTTP request headers), and protocol headers such as `A2A-Version` are attached automatically by the official client:
 
 ```python
-import httpx
-
-NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
-
-HEADERS = {
-    "Content-Type": "application/json",
-    "A2A-Version": "1.0",
-    "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
-}
-```
-
-#### 1.4.4.8 Send a Request with A2A-T Extensions
-
-```python
-import httpx
-
-from pathlib import Path
-from a2a_t.client.a2at_client import A2ATClient
+from a2a.client.client import ClientCallContext
 
 NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
 
 ACCESS_TOKEN = "{your_access_token}"
 
-client = A2ATClient(env_path=Path("package_data/.env"))
+context = ClientCallContext(
+    service_parameters={
+        "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+    },
+)
+```
+
+#### 1.4.4.8 Send a Request with A2A-T Extensions
+
+Create the A2A client with the official `ClientFactory`, build the request with `SendMessageRequest` (the A2A-T processed prompt is placed in `message.metadata`, keyed by the extension URI), and declare the extension request headers through `ClientCallContext`:
+
+```python
+import uuid
+
+from a2a.client.client import ClientCallContext, ClientConfig
+from a2a.client.client_factory import ClientFactory
+from a2a.types import AgentCard, Role, SendMessageRequest
+from a2a.utils.constants import TransportProtocol
+
+from pathlib import Path
+from a2a_t.client.a2at_client import A2ATClient
+from google.protobuf.json_format import ParseDict
+
+NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+
+ACCESS_TOKEN = "{your_access_token}"
 
 # 1) Generate the A2A-T prompt
+client = A2ATClient(env_path=Path("package_data/.env"))
 result = client.generate_task_prompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart")
 if not result.success:
     raise RuntimeError(result.failure.to_dict())
 
 processed_prompt = result.prompt_text
 
-# 2) Send the task via A2A HTTP+JSON (headers declare the extension; the body carries the A2A-T extension field)
-resp = httpx.post(
-    "https://10.xx.xx.xx:27417/a2a/json",
-    headers={
-        "Content-Type": "application/json",
-        "A2A-Version": "1.0",
+# 2) Create the official A2A client (the AgentCard comes from the registry center; see 1.4.4.5)
+agent_card = ParseDict(agent_card_dict, AgentCard())
+a2a_client = ClientFactory(
+    ClientConfig(
+        supported_protocol_bindings=[TransportProtocol.HTTP_JSON],
+        use_client_preference=True,
+    )
+).create(agent_card)
+
+# 3) Build the request (headers declare the extension; the body carries the A2A-T extension field)
+request = SendMessageRequest()
+request.message.message_id = str(uuid.uuid4())
+request.message.role = Role.ROLE_USER
+request.message.parts.add().text = "Create an intelligent fault Incident reporting task"
+request.message.metadata[NOTIFICATION_PROMPT_EXT] = processed_prompt
+
+context = ClientCallContext(
+    service_parameters={
         "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
         "Authorization": f"Bearer {ACCESS_TOKEN}",
     },
-    json={
-        "message": {
-            "messageId": "3ad1c0d9-2289-4f0c-9a19-addd10f49868",
-            "contextId": "d3310184-bd9b-477c-9e99-5a09b99680b4",
-            "role": "ROLE_USER",
-            "parts": [
-                {
-                    "text": "Create an intelligent fault Incident reporting task"
-                }
-            ],
-            "metadata": {
-                NOTIFICATION_PROMPT_EXT: processed_prompt
-            }
-        },
-        "configuration": {
-            "acceptedOutputModes": [
-                "text/plain"
-            ],
-            "historyLength": 10
-        }
-    },
-    timeout=30,
 )
-resp.raise_for_status()
+
+# 4) Send the request and consume the response stream (StreamResponse: status_update / artifact_update / message)
+async for stream_response in a2a_client.send_message(request, context=context):
+    if stream_response.HasField("status_update"):
+        print("status:", stream_response.status_update.status.state)
+    elif stream_response.HasField("artifact_update"):
+        print("artifact:", stream_response.artifact_update.artifact.name)
+    elif stream_response.HasField("message"):
+        print("message:", stream_response.message.parts[0].text)
+
+await a2a_client.close()
 ```
 
 #### 1.4.4.9 Complete Sample Client Code
 
 ```python
-import httpx
-
+import asyncio
+import uuid
 from pathlib import Path
+
+import httpx
+from a2a.client.client import ClientCallContext, ClientConfig
+from a2a.client.client_factory import ClientFactory
+from a2a.types import AgentCard, Role, SendMessageRequest
+from a2a.utils.constants import TransportProtocol
 from a2a_t.client.a2at_client import A2ATClient
+from google.protobuf.json_format import ParseDict
 
 NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
 
@@ -522,51 +552,55 @@ def discover_agent(discover_url: str, task: str) -> dict:
     resp.raise_for_status()
     return resp.json()["agentCards"][0]
 
-# 1) Register the client AgentCard and discover the server AgentCard
-register_agent_card("{ip:port}/rest/v1/registry-center/agent-cards", AGENT_CARD)
-agent_card = discover_agent("{ip:port}/rest/v1/registry-center/agent-cards/semantic-query", task="Need to subscribe to faults")
+async def main() -> None:
+    # 1) Register the client AgentCard and discover the server AgentCard
+    #    (the registry center is a business-system-side component)
+    register_agent_card("{ip:port}/rest/v1/registry-center/agent-cards", AGENT_CARD)
+    agent_card_dict = discover_agent("{ip:port}/rest/v1/registry-center/agent-cards/semantic-query", task="Need to subscribe to faults")
 
-# 2) Use the SDK to generate the A2A-T prompt
-client = A2ATClient(env_path=Path("package_data/.env"))
-result = client.generate_task_prompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart")
-if not result.success:
-    raise RuntimeError(result.failure.to_dict())
+    # 2) Use the SDK to generate the A2A-T prompt
+    client = A2ATClient(env_path=Path("package_data/.env"))
+    result = client.generate_task_prompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart")
+    if not result.success:
+        raise RuntimeError(result.failure.to_dict())
 
-processed_prompt = result.prompt_text
+    processed_prompt = result.prompt_text
 
-# 3) Send the task via A2A HTTP+JSON (headers declare the extension; the body carries the A2A-T extension field)
-resp = httpx.post(
-    agent_card["supportedInterfaces"][0]["url"],
-    headers={
-        "Content-Type": "application/json",
-        "A2A-Version": "1.0",
-        "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
-    },
-    json={
-        "message": {
-            "messageId": "3ad1c0d9-2289-4f0c-9a19-addd10f49868",
-            "contextId": "d3310184-bd9b-477c-9e99-5a09b99680b4",
-            "role": "ROLE_USER",
-            "parts": [
-                {
-                    "text": "Create an intelligent fault Incident reporting task"
-                }
-            ],
-            "metadata": {
-                NOTIFICATION_PROMPT_EXT: processed_prompt
-            }
+    # 3) Create the official A2A client
+    agent_card = ParseDict(agent_card_dict, AgentCard())
+    a2a_client = ClientFactory(
+        ClientConfig(
+            supported_protocol_bindings=[TransportProtocol.HTTP_JSON],
+            use_client_preference=True,
+        )
+    ).create(agent_card)
+
+    # 4) Build the request (headers declare the extension; the body carries the A2A-T extension field)
+    request = SendMessageRequest()
+    request.message.message_id = str(uuid.uuid4())
+    request.message.role = Role.ROLE_USER
+    request.message.parts.add().text = "Create an intelligent fault Incident reporting task"
+    request.message.metadata[NOTIFICATION_PROMPT_EXT] = processed_prompt
+
+    context = ClientCallContext(
+        service_parameters={
+            "A2A-Extensions": NOTIFICATION_PROMPT_EXT,
+            "Authorization": f"Bearer {ACCESS_TOKEN}",
         },
-        "configuration": {
-            "acceptedOutputModes": [
-                "text/plain"
-            ],
-            "historyLength": 10
-        }
-    },
-    timeout=30,
-)
-resp.raise_for_status()
+    )
+
+    # 5) Send the request and consume the response stream
+    async for stream_response in a2a_client.send_message(request, context=context):
+        if stream_response.HasField("status_update"):
+            print("status:", stream_response.status_update.status.state)
+        elif stream_response.HasField("artifact_update"):
+            print("artifact:", stream_response.artifact_update.artifact.name)
+        elif stream_response.HasField("message"):
+            print("message:", stream_response.message.parts[0].text)
+
+    await a2a_client.close()
+
+asyncio.run(main())
 ```
 
 ### 1.4.5 Sample Server Development Steps
@@ -673,57 +707,145 @@ server = A2ATServer(env_path=Path("package_data/.env"))
 
 #### 1.4.5.2 Receive and Validate the Message
 
-In the A2A business callback, the server extracts the processed task prompt from the message `metadata` field (keyed by the extension URI) and passes it to `A2ATServer.check_task_prompt` for validation:
+The official A2A Server invokes business logic through the `AgentExecutor` callback. In the `execute` callback: first validate the extension request headers declared by the client from the `RequestContext`, then extract the processed task prompt from `message.metadata` (keyed by the extension URI), pass it to `A2ATServer.check_task_prompt` for validation, and finally push task statuses to the `EventQueue` according to the validation result:
 
 ```python
+import uuid
+
+from a2a.server.agent_execution.agent_executor import AgentExecutor
+from a2a.server.agent_execution.context import RequestContext
+from a2a.server.events.event_queue import EventQueue
+from a2a.types import Artifact, Message, Role, Task, TaskState, TaskStatus, TaskStatusUpdateEvent
+from google.protobuf.json_format import MessageToDict, ParseDict
+from google.protobuf.struct_pb2 import Value
+
 from pathlib import Path
 from a2a_t.server.a2at_server import A2ATServer
 
 NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
 
-server = A2ATServer(env_path=Path("package_data/.env"))
+class NotificationAgentExecutor(AgentExecutor):
+    """Server-side executor that handles Notification-T extension requests."""
 
-def handle_a2at_message(message: dict) -> dict:
-    processed_prompt = message.get("metadata", {}).get(NOTIFICATION_PROMPT_EXT)
-    if not processed_prompt:
-        return {"error": "missing A2A-T task prompt"}
+    def __init__(self, prompt_server: A2ATServer) -> None:
+        self._prompt_server = prompt_server
 
-    check_result = server.check_task_prompt(processed_prompt_text=processed_prompt)
-    if check_result.success:
-        # Validation passed; proceed to business execution
-        return {"status": "accepted", "business": execute_business(processed_prompt)}
-    # Validation failed; failure carries code, message, and stage
-    return {"status": "rejected", "failure": check_result.failure}
+    async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        task_id = context.task_id or ""
+        context_id = context.context_id or ""
+
+        # 1) Validate the A2A-T extension declared by the client (A2A-Extensions request header)
+        if NOTIFICATION_PROMPT_EXT not in context.requested_extensions:
+            raise ValueError("missing Notification-T extension")
+
+        # 2) Extract the processed task prompt from message.metadata
+        if context.message is None or context.message.metadata is None:
+            raise ValueError("missing A2A-T task prompt")
+        processed_prompt = str(MessageToDict(context.message.metadata).get(NOTIFICATION_PROMPT_EXT, ""))
+
+        # 3) Push the SUBMITTED status
+        task = Task(
+            id=task_id,
+            context_id=context_id,
+            status=TaskStatus(
+                state=TaskState.TASK_STATE_SUBMITTED,
+                message=self._build_message(task_id, context_id, "subscription accepted"),
+            ),
+        )
+        context.current_task = Task()
+        context.current_task.CopyFrom(task)
+        await event_queue.enqueue_event(task)
+
+        # 4) Use the A2A-T SDK to validate completeness
+        check_result = self._prompt_server.check_task_prompt(processed_prompt_text=processed_prompt)
+        if not check_result.success:
+            # Validation failed: push REJECTED (failure carries code, message, and stage)
+            await self._emit_status(event_queue, task_id, context_id, TaskState.TASK_STATE_REJECTED, f"prompt validation failed: {check_result.failure}")
+            return
+
+        # 5) Validation passed: WORKING -> execute the business and push the artifact -> COMPLETED
+        await self._emit_status(event_queue, task_id, context_id, TaskState.TASK_STATE_WORKING, "incident reporting in progress")
+
+        artifact = Artifact(artifact_id=str(uuid.uuid4()), name="faultManagement.Incident")
+        artifact.parts.add(data=ParseDict(execute_business(processed_prompt), Value()))
+        await event_queue.enqueue_event(
+            TaskArtifactUpdateEvent(task_id=task_id, context_id=context_id, artifact=artifact, last_chunk=True)
+        )
+
+        await self._emit_status(event_queue, task_id, context_id, TaskState.TASK_STATE_COMPLETED, "task completed")
+
+    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        return None
+
+    @staticmethod
+    def _build_message(task_id: str, context_id: str, text: str) -> Message:
+        message = Message(task_id=task_id, context_id=context_id, role=Role.ROLE_AGENT)
+        message.parts.add(text=text)
+        return message
+
+    async def _emit_status(
+        self,
+        event_queue: EventQueue,
+        task_id: str,
+        context_id: str,
+        state: TaskState,
+        text: str,
+    ) -> None:
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=task_id,
+                context_id=context_id,
+                status=TaskStatus(state=state, message=self._build_message(task_id, context_id, text)),
+            )
+        )
 
 ```
 
-#### 1.4.5.3 Fill In A2A Response Headers and Return the Response
+#### 1.4.5.3 Assemble the Server Application
 
-| Header           | Direction         | Required                            | Value                                                       |
-| ---------------- | ----------------- | ----------------------------------- | ----------------------------------------------------------- |
-| `A2A-Extensions` | Response header   | No (recommended when using extensions) | List of extension URIs actually participating on the server side (comma-separated) |
+Use the official SDK's `DefaultRequestHandler` to assemble the request handler, together with `create_agent_card_routes` and `create_rest_routes` to generate the protocol routes (AgentCard queries, task/message handling, SSE streaming, etc.). Protocol header parsing and responses are handled by the official SDK; the business side does not need to process HTTP messages manually:
 
 ```python
-from fastapi import FastAPI, Response
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.routes import create_agent_card_routes, create_rest_routes
+from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
+from a2a.types import AgentCard
+from google.protobuf.json_format import ParseDict
+from starlette.applications import Starlette
 
-NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+agent_card = ParseDict(AGENT_CARD["agentCards"][0], AgentCard())
 
-app = FastAPI()
+request_handler = DefaultRequestHandler(
+    agent_executor=executor,       # NotificationAgentExecutor defined in 1.4.5.2
+    task_store=InMemoryTaskStore(),
+    agent_card=agent_card,
+)
 
-@app.post("/")
-def handle_message(payload: dict, response: Response):
-    response.headers["A2A-Extensions"] = NOTIFICATION_PROMPT_EXT
-    # ... business processing
-    return {"result": "ok"}
+app = Starlette(routes=[
+    *create_agent_card_routes(agent_card),
+    *create_rest_routes(request_handler),
+])
 ```
 
 #### 1.4.5.4 Complete Sample Server Code
 
 ```python
+import uuid
 from pathlib import Path
+
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException, Response
+import uvicorn
+from a2a.server.agent_execution.agent_executor import AgentExecutor
+from a2a.server.agent_execution.context import RequestContext
+from a2a.server.events.event_queue import EventQueue
+from a2a.server.request_handlers import DefaultRequestHandler
+from a2a.server.routes import create_agent_card_routes, create_rest_routes
+from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
+from a2a.types import AgentCard, Artifact, Message, Role, Task, TaskState, TaskStatus, TaskStatusUpdateEvent
 from a2a_t.server.a2at_server import A2ATServer
+from google.protobuf.json_format import MessageToDict, ParseDict
+from google.protobuf.struct_pb2 import Value
+from starlette.applications import Starlette
 
 NOTIFICATION_PROMPT_EXT = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
 
@@ -737,44 +859,102 @@ def register_agent_card(registry_url: str, agent_card: dict) -> None:
     )
     resp.raise_for_status()
 
-# 1) Register the server AgentCard
+class NotificationAgentExecutor(AgentExecutor):
+    """Server-side executor that handles Notification-T extension requests."""
+
+    def __init__(self, prompt_server: A2ATServer) -> None:
+        self._prompt_server = prompt_server
+
+    async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        task_id = context.task_id or ""
+        context_id = context.context_id or ""
+
+        # 1) Validate the A2A-T extension declared by the client (A2A-Extensions request header)
+        if NOTIFICATION_PROMPT_EXT not in context.requested_extensions:
+            raise ValueError("missing Notification-T extension")
+
+        # 2) Extract the processed task prompt from message.metadata
+        if context.message is None or context.message.metadata is None:
+            raise ValueError("missing A2A-T task prompt")
+        processed_prompt = str(MessageToDict(context.message.metadata).get(NOTIFICATION_PROMPT_EXT, ""))
+
+        # 3) Push the SUBMITTED status
+        task = Task(
+            id=task_id,
+            context_id=context_id,
+            status=TaskStatus(
+                state=TaskState.TASK_STATE_SUBMITTED,
+                message=self._build_message(task_id, context_id, "subscription accepted"),
+            ),
+        )
+        context.current_task = Task()
+        context.current_task.CopyFrom(task)
+        await event_queue.enqueue_event(task)
+
+        # 4) Use the A2A-T SDK to validate completeness
+        check_result = self._prompt_server.check_task_prompt(processed_prompt_text=processed_prompt)
+        if not check_result.success:
+            # Validation failed: push REJECTED (failure carries code, message, and stage)
+            await self._emit_status(event_queue, task_id, context_id, TaskState.TASK_STATE_REJECTED, f"prompt validation failed: {check_result.failure}")
+            return
+
+        # 5) Validation passed: WORKING -> execute the business and push the artifact -> COMPLETED
+        await self._emit_status(event_queue, task_id, context_id, TaskState.TASK_STATE_WORKING, "incident reporting in progress")
+
+        artifact = Artifact(artifact_id=str(uuid.uuid4()), name="faultManagement.Incident")
+        artifact.parts.add(data=ParseDict(execute_business(processed_prompt), Value()))
+        await event_queue.enqueue_event(
+            TaskArtifactUpdateEvent(task_id=task_id, context_id=context_id, artifact=artifact, last_chunk=True)
+        )
+
+        await self._emit_status(event_queue, task_id, context_id, TaskState.TASK_STATE_COMPLETED, "task completed")
+
+    async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        return None
+
+    @staticmethod
+    def _build_message(task_id: str, context_id: str, text: str) -> Message:
+        message = Message(task_id=task_id, context_id=context_id, role=Role.ROLE_AGENT)
+        message.parts.add(text=text)
+        return message
+
+    async def _emit_status(
+        self,
+        event_queue: EventQueue,
+        task_id: str,
+        context_id: str,
+        state: TaskState,
+        text: str,
+    ) -> None:
+        await event_queue.enqueue_event(
+            TaskStatusUpdateEvent(
+                task_id=task_id,
+                context_id=context_id,
+                status=TaskStatus(state=state, message=self._build_message(task_id, context_id, text)),
+            )
+        )
+
+# 1) Register the server AgentCard (the registry center is a business-system-side component)
 register_agent_card("{ip:port}/rest/v1/registry-center/agent-cards", AGENT_CARD)
 
-API_KEYS = {"allowed-key-1"}
-
-def require_auth(authorization: str = Header(default="")) -> None:
-    if authorization.removeprefix("Bearer ").strip() not in API_KEYS:
-        raise HTTPException(status_code=401, detail="unauthorized")
-
-app = FastAPI()
+# 2) Initialize the A2A-T server and the executor
 server = A2ATServer(env_path=Path("package_data/.env"))
+executor = NotificationAgentExecutor(prompt_server=server)
 
-@app.post("/")
-def handle_message(
-    payload: dict,
-    response: Response,
-    _: None = Depends(require_auth),
-    a2a_version: str | None = Header(default=None),
-):
-    # 2) Declare the actual participating A2A-T extension in the response headers
-    response.headers["A2A-Extensions"] = NOTIFICATION_PROMPT_EXT
+# 3) Assemble the official A2A server application
+agent_card = ParseDict(AGENT_CARD["agentCards"][0], AgentCard())
+request_handler = DefaultRequestHandler(
+    agent_executor=executor,
+    task_store=InMemoryTaskStore(),
+    agent_card=agent_card,
+)
+app = Starlette(routes=[
+    *create_agent_card_routes(agent_card),
+    *create_rest_routes(request_handler),
+])
 
-    if a2a_version != "1.0":
-        raise HTTPException(status_code=400, detail="unsupported A2A version")
-
-    # 3) Extract the A2A-T extension message (the prompt is in message.metadata, keyed by the extension URI)
-    message = payload["message"]
-    processed_prompt = message.get("metadata", {}).get(NOTIFICATION_PROMPT_EXT)
-    if not processed_prompt:
-        return {"error": "missing A2A-T task prompt"}
-
-    # 4) Use the SDK to validate completeness
-    check_result = server.check_task_prompt(processed_prompt_text=processed_prompt)
-    if check_result.success:
-        # 5) Validation passed; run the server-side business processing flow
-        return {"result": execute_business(processed_prompt)}
-    # Validation failed; failure carries code, message, and stage
-    return {"error": "prompt check failed", "failure": check_result.failure}
+# 4) Start the service
+uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
 ## 1.5 FAQ
