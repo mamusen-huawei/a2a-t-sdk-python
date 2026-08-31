@@ -51,7 +51,7 @@ SPDX-License-Identifier: Apache-2.0
 - 客户端 API：提供任务提示词生成结果流，以及 `start_negotiation`、`receive_negotiation`、`continue_negotiation` 等协商入口。
 - 服务端校验 API：面向符合 SDK 格式的 `processed task prompt`，执行场景识别、槽位提取和槽位校验。
 - 协商类型：内置 `information`协商类型。
-- 资源组织：内置提示词资源位于 `package_data/prompt_resources`，包含 `prompts`、`scenarios`、`slots`、`templates`。
+- 资源组织：内置提示词资源位于 `src/a2a_t/prompt_resources`（打包在 SDK 模块内），包含 `prompts`、`scenarios`、`slots`、`templates`。
 
 ## 项目结构
 

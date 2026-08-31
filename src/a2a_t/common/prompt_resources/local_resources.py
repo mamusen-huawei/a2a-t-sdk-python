@@ -12,10 +12,7 @@ from .errors import PromptResourceNotFoundError, PromptResourceParseError
 
 def _packaged_prompt_resource_root() -> Path:
     """Resolve the packaged prompt resource root for both source and installed layouts."""
-    return resolve_prompt_resource_root(
-        module_file=__file__,
-        source_parent_depth=4,
-    )
+    return resolve_prompt_resource_root()
 
 
 class LocalPromptResourceFiles:

@@ -8,6 +8,7 @@ from typing import Any, Mapping
 
 from a2a_t.common.resource_roots import resolve_prompt_resource_root
 from a2a_t.config.source import DotEnvConfigSource
+from a2a_t.core.errors.input_limit import InputLimitConfig
 
 
 def _parse_bool(raw_value: str | None, default: bool) -> bool:
@@ -26,12 +27,7 @@ def _parse_float(raw_value: str | None, default: float) -> float:
 
 def _default_prompt_resource_root_dir() -> str:
     """Return the packaged prompt resource root directory."""
-    return str(
-        resolve_prompt_resource_root(
-            module_file=__file__,
-            source_parent_depth=3,
-        ).resolve()
-    )
+    return str(resolve_prompt_resource_root().resolve())
 
 
 def _resolve_prompt_resource_root_dir(raw_value: str | None, *, base_dir: Path | None = None) -> str:
@@ -45,6 +41,7 @@ def _resolve_prompt_resource_root_dir(raw_value: str | None, *, base_dir: Path |
 
     resolved_base_dir = base_dir.resolve() if base_dir is not None else Path.cwd().resolve()
     return str((resolved_base_dir / candidate).resolve())
+
 
 @dataclass(slots=True)
 class PromptRuntimeConfig:
@@ -81,12 +78,14 @@ class PromptComplianceConfig:
             enabled=_parse_bool(values.get("A2AT_PROMPT_COMPLIANCE_ENABLED"), False),
         )
 
+
 @dataclass
 class A2ATConfig:
     """Global A2A-T configuration entry point."""
 
     prompt: PromptRuntimeConfig
     prompt_compliance: PromptComplianceConfig
+    input_limits: InputLimitConfig = field(default_factory=InputLimitConfig)
 
     @classmethod
     def load(cls, env_path: Path) -> A2ATConfig:
@@ -95,4 +94,5 @@ class A2ATConfig:
         return cls(
             prompt=PromptRuntimeConfig.from_mapping(values, base_dir=env_path.parent),
             prompt_compliance=PromptComplianceConfig.from_mapping(values),
+            input_limits=InputLimitConfig.from_map(values),
         )

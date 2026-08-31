@@ -7,14 +7,13 @@ message catalogs, and the closed prompt family set including the two Python-only
 deliberately broken fixture would be a fake-green gate.
 
 Error-code contract tests pin the catalog with a small synthetic table (via ``strict_catalog``) so
-they stay deterministic before and after P1 lands ``a2a_t.core.errors.catalog``; the degraded
-pre-P1 behavior (catalog unavailable) is pinned separately via ``degraded_catalog``.
+they stay deterministic regardless of the real ``a2a_t.core.errors.catalog`` contents; the degraded
+behavior (catalog unavailable) is pinned separately via ``degraded_catalog``.
 
-The bundled ``package_data`` root is not synced to Java 1.1.0 yet (P2 does that). Its ten stale
-findings are pinned in the linter's temporary P0 whitelist (``STALE_RESOURCE_ALLOWLIST``, plan 三、P0
-"临时白名单（…、过期资源）"): they must be reported one by one as warnings while the gate stays
-green, and anything beyond the complete pinned signature must stay red. The bundled-root tests below
-fail as soon as P2 syncs the resources — that is the removal trigger for the whitelist.
+The bundled ``src/a2a_t/prompt_resources`` root is synced to the Java 1.1.0 resources (P2): its
+byte-for-byte equality with the Java repository is verified outside this suite, and the tests below
+pin that the synced bundle passes the strict gate with the real catalog — neither errors nor
+warnings. The temporary P0 stale-resource whitelist was deleted together with that sync.
 """
 
 from __future__ import annotations
@@ -33,7 +32,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).parents[1]
 LINTER_PATH = REPO_ROOT / "tools" / "template_lint.py"
-BUNDLED_ROOT = REPO_ROOT / "package_data" / "prompt_resources"
+BUNDLED_ROOT = REPO_ROOT / "src" / "a2a_t" / "prompt_resources"
 
 _SPEC = importlib.util.spec_from_file_location("template_lint_under_test", LINTER_PATH)
 assert _SPEC is not None and _SPEC.loader is not None
@@ -196,11 +195,6 @@ def findings_with_rule(root: Path, rule: str) -> list[Any]:
 
 def rule_messages(root: Path, rule: str) -> str:
     return " ".join(item.message for item in findings_with_rule(root, rule))
-
-
-def stale_warnings(warnings: list[str]) -> list[str]:
-    """The warning lines the temporary stale-resource whitelist emitted for one lint run."""
-    return [warning for warning in warnings if linter.STALE_RESOURCE_WARNING in warning]
 
 
 # --- file mutation helpers (each asserts its target exists: a silent no-op mutation is a fake-green test) ---
@@ -1107,118 +1101,17 @@ def test_load_error_catalog_empty_catalog_is_loud(monkeypatch: pytest.MonkeyPatc
     assert "exposes no codes" in errors[0].message
 
 
-# --- current repository state (P0: resources not yet synced; updated by P1/P2) ---
-# --- and the temporary stale-resource whitelist the plan's P0 scope names (过期资源) ---
+# --- current repository state (P2: bundled resources synced to Java 1.1.0) ---
 
 
-def test_stale_resource_allowlist_pins_the_ten_p0_findings() -> None:
-    entries = linter.STALE_RESOURCE_ALLOWLIST
-    assert len(entries) == 10
-    assert linter.STALE_VOCABULARY_KEYS == (
-        "section.feasibility_confirm_request",
-        "slot.feasibility_confirm_request",
-        "section.target_confirm_request",
-        "slot.target_confirm_request",
-    )
-    for language in linter.NEGOTIATION_LANGUAGES:
-        vocabulary = sorted(
-            entry.message for entry in entries if entry.path == f"negotiation-vocabulary/{language}/vocabulary.json"
-        )
-        assert vocabulary == sorted(f"Missing required key '{key}'." for key in linter.STALE_VOCABULARY_KEYS)
-    for language in linter.ERROR_TEMPLATE_LANGUAGES:
-        entry = next(entry for entry in entries if entry.path == f"errors/{language}/errors.json")
-        assert entry.rule == "error-template"
-        assert entry.message == "Cannot load error message templates"
-        assert entry.requires_missing_file is True
-    assert all(not entry.requires_missing_file for entry in entries if entry.rule == "negotiation-vocabulary-key")
-
-
-def test_bundled_resources_report_the_known_stale_findings(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(linter, "load_error_catalog", lambda: (None, []))
+def test_bundled_resources_lint_clean_after_the_p2_sync() -> None:
+    # P2 synced the bundled root byte-for-byte from the Java 1.1.0 resources (cross-repo diff,
+    # excluding the D11 whitelist families and errors/), so nothing stale remains: the strict gate
+    # with the real catalog must report neither errors nor warnings. The P0 temporary
+    # stale-resource whitelist was deleted together with this sync instead of being extended.
     errors, warnings = linter.lint_resource_root(BUNDLED_ROOT)
-    # P0 contract (plan 三、P0): the ten findings of the not-yet-synced bundle are the repo's known
-    # stale state, so they are downgraded to warnings — the CI gate and the phase gate stay green —
-    # while still being reported one by one, matching the gap-analysis resource diff. Once P2 syncs
-    # the resources this pin fails, and the whitelist must be deleted with the sync, not extended.
-    assert errors == []
-    assert warnings[0] == linter.CATALOG_PENDING_WARNING
-    stale = stale_warnings(warnings)
-    assert len(stale) == 10
-    for language in linter.NEGOTIATION_LANGUAGES:
-        vocabulary = str(BUNDLED_ROOT / "negotiation-vocabulary" / language / "vocabulary.json")
-        for key in linter.STALE_VOCABULARY_KEYS:
-            assert any(vocabulary in warning and f"Missing required key '{key}'." in warning for warning in stale)
-        errors_json = str(BUNDLED_ROOT / "errors" / language / "errors.json")
-        assert any(errors_json in warning and "[error-template]" in warning for warning in stale)
-
-
-def test_partial_stale_signature_stays_red(green_root: Path, strict_catalog: None) -> None:
-    # Only two of the ten pinned findings are present, so the signature is incomplete and the
-    # temporary whitelist must not downgrade anything.
-    for language in linter.ERROR_TEMPLATE_LANGUAGES:
-        (green_root / "errors" / language / "errors.json").unlink()
-    errors, warnings = linter.lint_resource_root(green_root)
-    assert {item.rule for item in errors} == {"error-template", "error-template-missing"}
+    assert [str(item) for item in errors] == []
     assert warnings == []
-
-
-def test_almost_complete_stale_signature_stays_red(green_root: Path, strict_catalog: None) -> None:
-    # Eight of the ten pinned findings are present: the whitelist needs the complete signature.
-    for language in linter.NEGOTIATION_LANGUAGES:
-        path = green_root / "negotiation-vocabulary" / language / "vocabulary.json"
-        data = json.loads(path.read_text(encoding="utf-8"))
-        for key in linter.STALE_VOCABULARY_KEYS:
-            del data[key]
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    errors, warnings = linter.lint_resource_root(green_root)
-    assert {item.rule for item in errors} == {"negotiation-vocabulary-key"}
-    assert len(errors) == 8
-    assert warnings == []
-
-
-def test_synced_but_broken_error_catalog_is_not_allowlisted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    root = shutil.copytree(BUNDLED_ROOT, tmp_path / "prompt_resources")
-    monkeypatch.setattr(linter, "load_error_catalog", lambda: (None, []))
-    zh_catalog = root / "errors" / "zh-CN" / "errors.json"
-    zh_catalog.parent.mkdir(parents=True)
-    zh_catalog.write_text("{broken", encoding="utf-8")
-    errors, warnings = linter.lint_resource_root(root)
-    # The zh-CN entry only matches a genuinely absent file, and the broken signature keeps every
-    # other pinned finding red as well: the whitelist fails closed.
-    assert {item.rule for item in errors} == {"negotiation-vocabulary-key", "error-template"}
-    assert len(errors) == 10
-    assert any("zh-CN" in str(item) and item.rule == "error-template" for item in errors)
-    assert warnings == [linter.CATALOG_PENDING_WARNING]
-
-
-def test_extra_drift_beyond_the_stale_signature_stays_red(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    root = shutil.copytree(BUNDLED_ROOT, tmp_path / "prompt_resources")
-    monkeypatch.setattr(linter, "load_error_catalog", lambda: (None, []))
-    for language in linter.NEGOTIATION_LANGUAGES:
-        path = root / "negotiation-vocabulary" / language / "vocabulary.json"
-        data = json.loads(path.read_text(encoding="utf-8"))
-        del data["slot.info_items"]
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    errors, warnings = linter.lint_resource_root(root)
-    # The pinned ten stay downgraded while the new drift stays red: the whitelist is not a blanket pass.
-    assert {item.rule for item in errors} == {"negotiation-vocabulary-key"}
-    messages = " ".join(item.message for item in errors)
-    assert "Missing required key 'slot.info_items'." in messages
-    assert "confirm_request" not in messages
-    assert len(stale_warnings(warnings)) == 10
-
-
-def test_partially_synced_bundle_stays_red(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    root = shutil.copytree(BUNDLED_ROOT, tmp_path / "prompt_resources")
-    monkeypatch.setattr(linter, "load_error_catalog", lambda: (None, []))
-    for language in linter.ERROR_TEMPLATE_LANGUAGES:
-        write_json(root / "errors" / language / "errors.json", {"some.code": "Some message."})
-    errors, warnings = linter.lint_resource_root(root)
-    # Half a P2 sync (errors/ landed, the four vocabulary keys still missing) leaves an incomplete
-    # signature, so the eight vocabulary findings stay red.
-    assert {item.rule for item in errors} == {"negotiation-vocabulary-key"}
-    assert len(errors) == 8
-    assert warnings == [linter.CATALOG_PENDING_WARNING]
 
 
 def run_cli(resource_root: Path) -> subprocess.CompletedProcess[str]:
@@ -1249,21 +1142,13 @@ def test_cli_fails_on_a_broken_root(tmp_path: Path) -> None:
     assert "[negotiation-vocabulary]" in proc.stderr
 
 
-@pytest.mark.skipif(
-    REAL_CATALOG_AVAILABLE, reason="P1 catalog landed: the strict code-set gate is red until P2 syncs errors/"
-)
-def test_cli_passes_on_bundled_stale_resources() -> None:
+def test_cli_passes_on_the_synced_bundled_resources() -> None:
     proc = run_cli(BUNDLED_ROOT)
-    # The stale bundle is the whitelisted P0 state: the gate is green (CI step 'Lint bundled A2A-T
-    # templates') while the ten stale findings are still reported, one WARN line each.
+    # The P2-synced bundle is the CI gate's own root (CI step 'Lint bundled A2A-T templates'):
+    # exit 0 and no WARN line — the real catalog is importable and no stale finding remains.
     assert proc.returncode == 0
     assert "A2A-T template lint passed" in proc.stdout
-    assert "template lint failed" not in proc.stderr
-    assert proc.stderr.count(linter.STALE_RESOURCE_WARNING) == 10
-    assert "[negotiation-vocabulary-key]" in proc.stderr
-    assert "[error-template]" in proc.stderr
-    assert "WARN:" in proc.stderr
-    assert "P1 TODO" in proc.stderr
+    assert proc.stderr == ""
 
 
 def test_linter_requires_the_resource_root_argument() -> None:

@@ -4,7 +4,6 @@ import json
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -58,14 +57,15 @@ class PromptResourceLoaderTest(ManagedTempDirTestCase):
         self.assertEqual(scenarios[0].scenario_name, "Energy Saving")
 
     def test_template_loader_reads_template_markdown_text(self) -> None:
-        self._write_text("templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}\nTime Range: {time_range}\n")
+        self._write_text(
+            "templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md",
+            "Site: {site}\nTime Range: {time_range}\n",
+        )
 
         from a2a_t.common.prompt_resources.template_loader import TemplateLoader
 
         loader = TemplateLoader(root_dir=self.root)
-        template_text = loader.load(
-            reference=PromptReference(scenario_code="ran-energy-saving", language="en-US")
-        )
+        template_text = loader.load(reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"))
 
         self.assertEqual(template_text, "Site: {site}\nTime Range: {time_range}\n")
 
@@ -106,9 +106,7 @@ class PromptResourceLoaderTest(ManagedTempDirTestCase):
 
         loader = SlotSchemaLoader(root_dir=self.root)
         with self.assertRaises(PromptResourceParseError):
-            loader.load(
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US")
-            )
+            loader.load(reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"))
 
     def test_slot_schema_loader_reads_standard_json_schema_for_generation_flow(self) -> None:
         self._write_json(
@@ -140,9 +138,7 @@ class PromptResourceLoaderTest(ManagedTempDirTestCase):
         from a2a_t.common.prompt_resources.slot_schema_loader import SlotSchemaLoader
 
         loader = SlotSchemaLoader(root_dir=self.root)
-        slot_schema = loader.load(
-            reference=PromptReference(scenario_code="ran-energy-saving", language="en-US")
-        )
+        slot_schema = loader.load(reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"))
         explicit_slot_schema = loader.load_slot_schema(
             reference=PromptReference(scenario_code="ran-energy-saving", language="en-US")
         )
@@ -159,7 +155,9 @@ class PromptResourceLoaderTest(ManagedTempDirTestCase):
         self.assertFalse(slot_schema.slots[1].required)
         self.assertEqual(slot_schema.slots[1].allowed_values, ["critical", "major"])
 
-    def test_generation_loaders_fall_back_to_packaged_defaults_when_requested_language_resources_are_missing(self) -> None:
+    def test_generation_loaders_fall_back_to_packaged_defaults_when_requested_language_resources_are_missing(
+        self,
+    ) -> None:
         self._write_text("templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}\n")
         self._write_text("prompts/slot_extraction/en-US/system.md", "Extract slots.")
         self._write_text("prompts/slot_extraction/en-US/user.md", "Return slots.")
@@ -249,7 +247,9 @@ class PromptResourceLoaderTest(ManagedTempDirTestCase):
                 ]
             },
         )
-        self._write_text("templates/Notification-T/network-layer/subscribe-incident/v1/zh-CN/template.md", "CUSTOM TEMPLATE")
+        self._write_text(
+            "templates/Notification-T/network-layer/subscribe-incident/v1/zh-CN/template.md", "CUSTOM TEMPLATE"
+        )
         self._write_json(
             "slots/Notification-T/network-layer/subscribe-incident/v1/zh-CN/slot.json",
             {
@@ -279,19 +279,15 @@ class PromptResourceLoaderTest(ManagedTempDirTestCase):
         self.assertEqual(template_text, "CUSTOM TEMPLATE")
         self.assertEqual([slot.name for slot in slot_schema.slots], ["custom_field"])
 
-    def test_default_packaged_root_uses_site_packages_when_installed(self) -> None:
+    def test_default_packaged_root_is_the_in_package_resource_tree(self) -> None:
+        import a2a_t
         import a2a_t.common.prompt_resources.local_resources as local_resources
 
-        installed_module_path = self.root / "Lib" / "site-packages" / "a2a_t" / "common" / "prompt_resources" / "local_resources.py"
-        expected_root = self.root / "prompt_resources"
+        expected_root = Path(a2a_t.__file__).resolve().parent / "prompt_resources"
 
-        with (
-            patch.object(local_resources, "__file__", str(installed_module_path)),
-            patch("sysconfig.get_path", return_value=str(self.root)),
-        ):
-            self.assertEqual(local_resources.LocalPromptResourceFiles().root_dir, expected_root)
-            self.assertEqual(local_resources.BasePromptResourceLoader()._default_root_dir(), expected_root)
+        self.assertEqual(local_resources.LocalPromptResourceFiles().root_dir.resolve(), expected_root)
+        self.assertEqual(local_resources.BasePromptResourceLoader()._default_root_dir().resolve(), expected_root)
+
 
 if __name__ == "__main__":
     unittest.main()
-

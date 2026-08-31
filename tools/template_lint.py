@@ -4,15 +4,8 @@ and the file-driven negotiation vocabulary.
 
 Python port of the Java repository's ``tools/template_lint.py`` (1.1.0, 582 lines). Per D6 the error-code
 catalog is not parsed from source files: the linter imports ``a2a_t.core.errors.catalog.ErrorCatalog``
-directly. Until P1 lands that module the code-set checks degrade to a single warning (see
+directly. While that module is not importable the code-set checks degrade to a single warning (see
 ``CATALOG_PENDING_WARNING``); every structural check stays active so the gate never fake-greens.
-
-The bundled resources are not synced to Java 1.1.0 yet (P2 does that). The ten findings of that known
-stale state are pinned in ``STALE_RESOURCE_ALLOWLIST`` — the P0 temporary whitelist the port plan names
-("临时白名单（Python 独有 clarification/fulfillment prompts、过期资源）") — and are downgraded to
-warnings, so the CI gate and the phase gate stay green at P0 while the stale list keeps being reported
-one finding at a time. The whitelist fires only on the complete pinned signature: any additional or
-partial drift stays red, and P2 deletes the table together with the resource sync.
 """
 
 from __future__ import annotations
@@ -159,57 +152,6 @@ class Section:
 
 
 SectionShape: TypeAlias = tuple[str, bool | None, bool, int]
-
-
-@dataclass(frozen=True)
-class StaleResourceExpectation:
-    """One finding pinned as known-stale until P2 syncs the bundled resources.
-
-    ``path`` is POSIX-style and relative to the linted resource root; ``message`` is matched as a
-    prefix so an entry stays platform-independent where the finding text embeds an OS error. An
-    entry with ``requires_missing_file`` only matches while that file is genuinely absent, so a
-    synced but broken file still fails the gate.
-    """
-
-    rule: str
-    path: str
-    message: str
-    requires_missing_file: bool = False
-
-
-# P0 temporary stale-resource whitelist (plan 三、P0; the prompts half of that whitelist is
-# PROMPT_FAMILY_WHITELIST above, D11). The bundled package_data resources predate the Java 1.1.0
-# sync that P2 performs: both negotiation vocabularies miss the four confirm_request keys and both
-# errors/ message catalogs are absent (gap analysis: "词表 +4 confirm_request 键", "Python 缺整个
-# errors/ 目录"). Pinned 2026-08-31. See apply_stale_resource_allowlist for the exact semantics;
-# P2 removes this table together with the resource sync.
-STALE_VOCABULARY_KEYS: tuple[str, ...] = (
-    "section.feasibility_confirm_request",
-    "slot.feasibility_confirm_request",
-    "section.target_confirm_request",
-    "slot.target_confirm_request",
-)
-STALE_RESOURCE_ALLOWLIST: tuple[StaleResourceExpectation, ...] = (
-    *(
-        StaleResourceExpectation(
-            rule="negotiation-vocabulary-key",
-            path=f"negotiation-vocabulary/{language}/vocabulary.json",
-            message=f"Missing required key '{key}'.",
-        )
-        for language in NEGOTIATION_LANGUAGES
-        for key in STALE_VOCABULARY_KEYS
-    ),
-    *(
-        StaleResourceExpectation(
-            rule="error-template",
-            path=f"errors/{language}/errors.json",
-            message="Cannot load error message templates",
-            requires_missing_file=True,
-        )
-        for language in ERROR_TEMPLATE_LANGUAGES
-    ),
-)
-STALE_RESOURCE_WARNING = "Known stale resource allowlisted until the P2 resource sync removes it"
 
 
 def error(path: Path, line: int, rule: str, message: str) -> LintError:
@@ -875,48 +817,11 @@ def lint_error_codes(resource_root: Path, catalog: dict[str, list[str]] | None) 
     return errors
 
 
-def _resource_relative_path(path: Path, resource_root: Path) -> str | None:
-    """Returns ``path`` as a POSIX string relative to ``resource_root`` (``None`` when outside it)."""
-    try:
-        return path.relative_to(resource_root).as_posix()
-    except ValueError:
-        return None
-
-
-def _matches_stale_expectation(finding: LintError, expectation: StaleResourceExpectation, resource_root: Path) -> bool:
-    if finding.rule != expectation.rule or not finding.message.startswith(expectation.message):
-        return False
-    if _resource_relative_path(finding.path, resource_root) != expectation.path:
-        return False
-    return not expectation.requires_missing_file or not (resource_root / expectation.path).is_file()
-
-
-def apply_stale_resource_allowlist(errors: list[LintError], resource_root: Path) -> tuple[list[LintError], list[str]]:
-    """Applies the P0 temporary stale-resource whitelist to one lint result.
-
-    The whitelist fires only when the linted root shows the complete pinned stale signature — every
-    entry in :data:`STALE_RESOURCE_ALLOWLIST` matches at least one finding — and then downgrades
-    exactly the matching findings to warnings that keep the full finding text. A partially stale or
-    drifted root keeps every finding red, so the gate fails closed until P2 syncs the resources and
-    deletes the table.
-    """
-    matched = [
-        [finding for finding in errors if _matches_stale_expectation(finding, expectation, resource_root)]
-        for expectation in STALE_RESOURCE_ALLOWLIST
-    ]
-    if not all(matched):
-        return errors, []
-    allowlisted = {finding for group in matched for finding in group}
-    remaining = [finding for finding in errors if finding not in allowlisted]
-    warnings = [f"{STALE_RESOURCE_WARNING}: {finding}" for finding in errors if finding in allowlisted]
-    return remaining, warnings
-
-
 def lint_resource_root(resource_root: Path) -> tuple[list[LintError], list[str]]:
     """Lints one prompt_resources root and returns ``(errors, warnings)``.
 
-    Warnings never change the exit code; the current ones are the pending P1 catalog degradation and
-    the temporarily allowlisted stale-resource findings (P0 whitelist, removed by P2).
+    Warnings never change the exit code; the current one is the pending catalog degradation emitted
+    while ``a2a_t.core.errors.catalog`` is not importable.
     """
     warnings: list[str] = []
     templates, slots = resource_root / "templates", resource_root / "slots"
@@ -947,8 +852,7 @@ def lint_resource_root(resource_root: Path) -> tuple[list[LintError], list[str]]
         warnings.append(CATALOG_PENDING_WARNING)
     errors.extend(lint_error_codes(resource_root, catalog))
     errors.extend(lint_prompt_file_set(resource_root / "prompts"))
-    remaining, stale_warnings = apply_stale_resource_allowlist(errors, resource_root)
-    return remaining, [*warnings, *stale_warnings]
+    return errors, warnings
 
 
 def main() -> int:

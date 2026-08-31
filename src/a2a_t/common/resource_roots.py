@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import sysconfig
+import os
+from importlib.resources import files
 from pathlib import Path
 
 
-def resolve_prompt_resource_root(*, module_file: str | Path, source_parent_depth: int) -> Path:
-    """Resolve packaged prompt resources for source checkouts and installed wheels."""
-    module_path = Path(module_file).resolve()
-    source_root = module_path.parents[source_parent_depth] / "package_data" / "prompt_resources"
-    if source_root.exists():
-        return source_root
-    return Path(sysconfig.get_path("data")).resolve() / "prompt_resources"
+def resolve_prompt_resource_root() -> Path:
+    """Resolve the packaged prompt resource tree via ``importlib.resources``.
+
+    Works unchanged for source checkouts, installed wheels, and zipapp layouts
+    (D8). The returned path is a real filesystem path, which the interim
+    local-file loaders require; the P3 resource-access layer replaces this shim.
+    """
+    return Path(os.fspath(files("a2a_t").joinpath("prompt_resources")))

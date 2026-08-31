@@ -42,7 +42,6 @@ Documentation = "https://github.com/project-openan/a2a-t-sdk-python#readme"
 [tool.uv.build-backend]
 module-name = "a2a_t"
 source-exclude = [".gitignore"]
-data = { data = "package_data" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
