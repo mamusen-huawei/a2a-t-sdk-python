@@ -60,5 +60,7 @@ class PromptComplianceOrchestratorBuilder:
             extractor=extractor,
             validator=components.json_schema_slot_validator,
             semantic_validator=semantic_validator,
+            input_limit=config.input_limits,
+            language=config.prompt.language,
             logger=logger,
         )

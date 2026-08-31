@@ -56,5 +56,6 @@ class PromptGenerationOrchestratorBuilder:
             scenario_resolver=scenario_resolver,
             slot_extractor=slot_extractor,
             renderer=self._renderer_cls(),
+            input_limit=config.input_limits,
             logger=logger,
         )

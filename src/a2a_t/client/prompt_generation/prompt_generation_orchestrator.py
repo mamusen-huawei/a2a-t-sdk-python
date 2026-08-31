@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from a2a_t.common.prompt_resources import (
@@ -8,32 +9,29 @@ from a2a_t.common.prompt_resources import (
     PromptResourceParseError,
 )
 from a2a_t.config.models import PromptRuntimeConfig
+from a2a_t.core.errors.catalog import ErrorCatalog
+from a2a_t.core.errors.input_limit import InputLimitConfig
+from a2a_t.core.errors.messages import render as render_error_message
+from a2a_t.llm.errors import LLMConfigError, is_response_contract_violation
 from a2a_t.prompt.analysis import ScenarioResolutionOrchestrator
 from a2a_t.prompt.analysis.errors import PromptAnalysisError
-from a2a_t.prompt.analysis.scenario_resolution_orchestrator import PREPARATION_STAGE
+from a2a_t.prompt.analysis.scenario_resolution_orchestrator import (
+    DEFAULT_SCENARIO_REASON,
+    PREPARATION_STAGE,
+)
 from a2a_t.prompt.common.errors import PromptSourceError
 from a2a_t.prompt.common.models import PromptReference
 from a2a_t.prompt.task_rendering import TaskPromptRenderer
 from a2a_t.prompt.task_rendering.errors import TaskPromptRenderError
 
-from .generation_constants import (
-    GENERATION_STAGE,
-    INVALID_LLM_OUTPUT,
-    LLM_EXECUTION_FAILED,
-    PROMPT_NOT_FOUND,
-    PROMPT_RESOURCE_ACCESS_ERROR,
-    PROMPT_RESOURCE_PARSE_ERROR,
-    RENDER_FAILED,
-    RENDER_STAGE,
-    SCENARIO_PARSE_FAILED,
-    SCENARIO_STAGE,
-    SLOT_SCHEMA_NOT_FOUND,
-    TEMPLATE_NOT_FOUND,
-)
+from .generation_constants import GENERATION_STAGE, INPUT_STAGE, RENDER_STAGE, SCENARIO_STAGE
 from .input_normalizer import InputNormalizer
 from .models import PromptGenerationFailure, PromptGenerationResult
 
 _LOGGER = logging.getLogger(__name__)
+
+#: Step label reported in ``llm.response_invalid`` when the slot-extraction step fails.
+_STEP_SLOT_EXTRACTION = "slot extraction"
 
 
 class PromptGenerationOrchestrator:
@@ -50,6 +48,7 @@ class PromptGenerationOrchestrator:
         slot_extractor: Any,
         input_normalizer: InputNormalizer | None = None,
         renderer: TaskPromptRenderer | None = None,
+        input_limit: InputLimitConfig | None = None,
         logger: Any | None = None,
     ) -> None:
         if not isinstance(config, PromptRuntimeConfig):
@@ -62,11 +61,18 @@ class PromptGenerationOrchestrator:
         self._slot_extractor = slot_extractor
         self._input_normalizer = input_normalizer or InputNormalizer()
         self._renderer = renderer or TaskPromptRenderer()
+        self._input_limit = input_limit if input_limit is not None else InputLimitConfig()
         self._logger = logger if logger is not None else _LOGGER
 
     def generate(self, user_input: str | dict[str, object]) -> PromptGenerationResult:
         """Run prompt generation from input normalization through prompt rendering."""
         self._log_info("prompt_generation_started")
+        if isinstance(user_input, str) and self._input_limit.is_too_long(user_input):
+            return self._catalog_failure(
+                entry=ErrorCatalog.INPUT_TEXT_TOO_LONG,
+                facts=self._input_limit.too_long_facts(user_input),
+                stage=INPUT_STAGE,
+            )
         if self._is_debug_enabled():
             self._log_debug("prompt_generation_raw_user_input raw_user_input=%s", user_input)
         normalized_input = self._input_normalizer.normalize(user_input)
@@ -88,11 +94,14 @@ class PromptGenerationOrchestrator:
             or scenario_resolution.scenario is None
         ):
             failure = scenario_resolution.failure
-            return self._failure_result(
-                code=failure.code if failure is not None else SCENARIO_PARSE_FAILED,
-                message=failure.message if failure is not None else "Scenario recognition failed.",
-                stage=failure.stage if failure is not None else SCENARIO_STAGE,
-            )
+            if failure is None:
+                return self._catalog_failure(
+                    entry=ErrorCatalog.SCENARIO_NOT_MATCHED,
+                    facts={"reason": DEFAULT_SCENARIO_REASON},
+                    stage=SCENARIO_STAGE,
+                )
+            # The resolver already rendered the catalog message for its own failure mode.
+            return self._failure_result(code=failure.code, message=failure.message, stage=failure.stage)
         reference = scenario_resolution.reference
         scenario = scenario_resolution.scenario
         scenario_code = reference.scenario_code
@@ -113,7 +122,11 @@ class PromptGenerationOrchestrator:
                 PromptGenerationResult(
                     success=False,
                     prompt_text=None,
-                    failure=PromptGenerationFailure(code=error.code, message=error.message, stage=error.stage),
+                    failure=PromptGenerationFailure(
+                        code=error.entry.value,
+                        message=render_error_message(error.entry, error.facts, resolved_language),
+                        stage=error.stage,
+                    ),
                 )
             )
 
@@ -126,35 +139,19 @@ class PromptGenerationOrchestrator:
                 system_prompt=slot_prompts.system_prompt,
                 user_prompt=slot_prompts.user_prompt,
             )
-        except PromptAnalysisError as error:
-            return self._finalize_result(
-                PromptGenerationResult(
-                    success=False,
-                    prompt_text=None,
-                    failure=PromptGenerationFailure(
-                        code=INVALID_LLM_OUTPUT,
-                        message=str(error),
-                        stage=GENERATION_STAGE,
-                    ),
-                )
+        except PromptAnalysisError:
+            return self._catalog_failure(
+                entry=ErrorCatalog.LLM_RESPONSE_INVALID,
+                facts={"step": _STEP_SLOT_EXTRACTION},
+                stage=GENERATION_STAGE,
             )
         except Exception as error:
-            return self._finalize_result(
-                PromptGenerationResult(
-                    success=False,
-                    prompt_text=None,
-                    failure=PromptGenerationFailure(
-                        code=LLM_EXECUTION_FAILED,
-                        message=str(error),
-                        stage=GENERATION_STAGE,
-                    ),
-                )
-            )
+            return self._llm_failure_result(error, step=_STEP_SLOT_EXTRACTION)
         self._log_debug_if_available(
             "prompt_generation_slot_raw_output slot_raw_output=%s",
             self._slot_extractor,
         )
-        rendered_prompt_text, render_error_message = self._render_prompt_text(
+        rendered_prompt_text, render_error_message_text = self._render_prompt_text(
             template_text=template_text,
             slots=extraction_result.slots,
             scenario_code=scenario_code,
@@ -167,16 +164,13 @@ class PromptGenerationOrchestrator:
             extraction_result.slot_errors,
         )
         if rendered_prompt_text is None:
-            return self._finalize_result(
-                PromptGenerationResult(
-                    success=False,
-                    prompt_text=None,
-                    failure=PromptGenerationFailure(
-                        code=RENDER_FAILED,
-                        message=render_error_message or "Task prompt rendering failed.",
-                        stage=RENDER_STAGE,
-                    ),
-                )
+            return self._catalog_failure(
+                entry=ErrorCatalog.TEMPLATE_RENDER_FAILED,
+                facts={
+                    "template_uri": scenario_code,
+                    "reason": render_error_message_text or "Task prompt rendering failed.",
+                },
+                stage=RENDER_STAGE,
             )
 
         return self._finalize_result(
@@ -213,31 +207,31 @@ class PromptGenerationOrchestrator:
             # even though loaders share one exception type.
             if resource_path.endswith("template.md"):
                 raise _PromptGenerationResourceError(
-                    code=TEMPLATE_NOT_FOUND,
-                    message=str(error),
+                    entry=ErrorCatalog.TEMPLATE_NOT_FOUND,
+                    facts={"template_uri": reference.scenario_code, "language": reference.language},
                     stage=PREPARATION_STAGE,
                 ) from error
             if resource_path.endswith("slot.json"):
                 raise _PromptGenerationResourceError(
-                    code=SLOT_SCHEMA_NOT_FOUND,
-                    message=str(error),
+                    entry=ErrorCatalog.SLOT_SCHEMA_NOT_FOUND,
+                    facts={"template_uri": reference.scenario_code, "language": reference.language},
                     stage=PREPARATION_STAGE,
                 ) from error
             raise _PromptGenerationResourceError(
-                code=PROMPT_NOT_FOUND,
-                message=str(error),
+                entry=ErrorCatalog.TEMPLATE_LOAD_FAILED,
+                facts={"resource_path": resource_path or str(error)},
                 stage=PREPARATION_STAGE,
             ) from error
         except PromptResourceParseError as error:
             raise _PromptGenerationResourceError(
-                code=PROMPT_RESOURCE_PARSE_ERROR,
-                message=str(error),
+                entry=ErrorCatalog.TEMPLATE_LOAD_FAILED,
+                facts={"resource_path": str(error.context.get("path", error))},
                 stage=PREPARATION_STAGE,
             ) from error
         except PromptSourceError as error:
             raise _PromptGenerationResourceError(
-                code=PROMPT_RESOURCE_ACCESS_ERROR,
-                message=str(error),
+                entry=ErrorCatalog.TEMPLATE_LOAD_FAILED,
+                facts={"resource_path": str(error.context.get("locator", reference.scenario_code))},
                 stage=PREPARATION_STAGE,
             ) from error
 
@@ -254,16 +248,55 @@ class PromptGenerationOrchestrator:
         try:
             return (
                 self._renderer.render(
-                template_text=template_text,
-                slots=slots,
-                scenario_code=scenario_code,
-                language=language,
-                description=description,
+                    template_text=template_text,
+                    slots=slots,
+                    scenario_code=scenario_code,
+                    language=language,
+                    description=description,
                 ),
                 None,
             )
         except TaskPromptRenderError as error:
             return None, str(error)
+
+    def _llm_failure_result(self, error: BaseException, *, step: str) -> PromptGenerationResult:
+        """Translate one LLM-step failure into the Java client-orchestrator failure codes.
+
+        Configuration failures map to ``llm.not_configured``, response-contract violations to
+        ``llm.response_invalid`` (carrying the step label), and everything else to
+        ``llm.invocation_failed`` (carrying the underlying message as the reason fact).
+        """
+        if isinstance(error, LLMConfigError):
+            return self._catalog_failure(
+                entry=ErrorCatalog.LLM_NOT_CONFIGURED,
+                facts={},
+                stage=GENERATION_STAGE,
+            )
+        if is_response_contract_violation(error):
+            return self._catalog_failure(
+                entry=ErrorCatalog.LLM_RESPONSE_INVALID,
+                facts={"step": step},
+                stage=GENERATION_STAGE,
+            )
+        return self._catalog_failure(
+            entry=ErrorCatalog.LLM_INVOCATION_FAILED,
+            facts={"reason": str(error)},
+            stage=GENERATION_STAGE,
+        )
+
+    def _catalog_failure(
+        self,
+        *,
+        entry: ErrorCatalog,
+        facts: Mapping[str, object],
+        stage: str,
+    ) -> PromptGenerationResult:
+        """Build a generation failure whose message is rendered from the code's template."""
+        return self._failure_result(
+            code=entry.value,
+            message=render_error_message(entry, facts, self._config.language),
+            stage=stage,
+        )
 
     def _failure_result(
         self,
@@ -314,10 +347,10 @@ class PromptGenerationOrchestrator:
 
 
 class _PromptGenerationResourceError(Exception):
-    """Carry resource failure details before they are converted into API results."""
+    """Carry catalog failure details before they are converted into API results."""
 
-    def __init__(self, *, code: str, message: str, stage: str) -> None:
-        super().__init__(message)
-        self.code = code
-        self.message = message
+    def __init__(self, *, entry: ErrorCatalog, facts: Mapping[str, object], stage: str) -> None:
+        super().__init__(entry.value)
+        self.entry = entry
+        self.facts = dict(facts)
         self.stage = stage

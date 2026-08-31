@@ -14,12 +14,9 @@ if str(SRC_ROOT) not in sys.path:
 from a2a_t.common.prompt_resources.errors import PromptResourceNotFoundError
 from a2a_t.common.prompt_resources.models import PromptMessages, ScenarioDefinition
 from a2a_t.config.models import PromptRuntimeConfig
+from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.prompt.analysis.models import ScenarioRecognitionResult
-from a2a_t.server.prompt_compliance.constants import (
-    PROCESSED_PROMPT_PARSE_ERROR,
-    PROMPT_PARSE_STAGE,
-    PROMPT_RESOURCE_LOAD_ERROR,
-)
+from a2a_t.server.prompt_compliance.constants import PROMPT_PARSE_STAGE
 
 
 class FakeScenarioLoader:
@@ -131,6 +128,7 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
                 scenario_code=None,
                 error_message="No matching scenario.",
             ),
+            language="en-US",
         )
 
         result = orchestrator.resolve("Please analyze site A energy usage.")
@@ -139,8 +137,8 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
         self.assertIsNone(result.reference)
         self.assertIsNone(result.scenario)
         self.assertEqual(result.failure.stage, PROMPT_PARSE_STAGE)
-        self.assertEqual(result.failure.code, PROCESSED_PROMPT_PARSE_ERROR)
-        self.assertEqual(result.failure.message, "No matching scenario.")
+        self.assertEqual(result.failure.code, ErrorCatalog.SCENARIO_NOT_MATCHED.value)
+        self.assertEqual(result.failure.message, "The input does not match any known scenario: No matching scenario.")
 
     def test_resolve_returns_prompt_parse_failure_when_scenario_code_is_not_supported(self) -> None:
         orchestrator = self._build_orchestrator(
@@ -158,15 +156,17 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
                 scenario_code="unknown_scenario",
                 error_message=None,
             ),
+            language="en-US",
         )
 
         result = orchestrator.resolve("Please analyze site A energy usage.")
 
         self.assertFalse(result.success)
         self.assertEqual(result.failure.stage, PROMPT_PARSE_STAGE)
-        self.assertEqual(result.failure.code, PROCESSED_PROMPT_PARSE_ERROR)
+        self.assertEqual(result.failure.code, ErrorCatalog.SCENARIO_NOT_MATCHED.value)
         self.assertEqual(
             result.failure.message,
+            "The input does not match any known scenario: "
             "Scenario recognition returned unsupported scenario_code: unknown_scenario",
         )
 
@@ -185,8 +185,11 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
 
         self.assertFalse(result.success)
         self.assertEqual(result.failure.stage, "preparation")
-        self.assertEqual(result.failure.code, PROMPT_RESOURCE_LOAD_ERROR)
-        self.assertEqual(result.failure.message, "Scenario recognition prompt resources are missing.")
+        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
+        self.assertEqual(
+            result.failure.message,
+            "模板资源「Scenario recognition prompt resources are missing.」读取失败",
+        )
 
     def test_resolve_returns_prompt_parse_failure_when_recognizer_raises_runtime_error(self) -> None:
         orchestrator = self._build_orchestrator(
@@ -200,14 +203,15 @@ class ScenarioResolutionOrchestratorTest(unittest.TestCase):
             ],
             prompt_result=PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario."),
             recognition_result=RuntimeError("llm transport down"),
+            language="en-US",
         )
 
         result = orchestrator.resolve("Please analyze site A energy usage.")
 
         self.assertFalse(result.success)
         self.assertEqual(result.failure.stage, PROMPT_PARSE_STAGE)
-        self.assertEqual(result.failure.code, PROCESSED_PROMPT_PARSE_ERROR)
-        self.assertEqual(result.failure.message, "llm transport down")
+        self.assertEqual(result.failure.code, ErrorCatalog.SCENARIO_NOT_MATCHED.value)
+        self.assertEqual(result.failure.message, "The input does not match any known scenario: llm transport down")
 
 
 if __name__ == "__main__":

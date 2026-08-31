@@ -13,10 +13,11 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 
+from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.llm.models import LLMClientConfig
 from a2a_t.negotiation.common.enums import NegotiationStatus, NegotiationType
 from a2a_t.negotiation.common.models import ContinueNegotiationInput, NegotiationContext, StartNegotiationInput
-from a2a_t.server.prompt_compliance.models import PromptComplianceResult
+from a2a_t.server.prompt_compliance.models import PromptComplianceFailure, PromptComplianceResult
 from tests.support import TEST_ENV_PATH, ManagedTempDirTestCase
 
 
@@ -101,11 +102,11 @@ class A2ATServerTest(unittest.TestCase):
 
         compliance_result = PromptComplianceResult(
             success=False,
-            failure={
-                "code": "slot_validation_error",
-                "message": "Site format is invalid.",
-                "stage": "slot_validation",
-            },
+            failure=PromptComplianceFailure(
+                code=ErrorCatalog.SLOT_RULE_VIOLATION.value,
+                message="Site format is invalid.",
+                stage="slot_validation",
+            ),
         )
         compliance = FakePromptComplianceOrchestrator(compliance_result)
         compliance_builder = FakePromptComplianceBuilder(compliance)
@@ -147,11 +148,11 @@ class A2ATServerTest(unittest.TestCase):
                 server.check_task_prompt(processed_prompt_text="prompt"),
                 PromptComplianceResult(
                     success=False,
-                    failure={
-                        "code": "slot_validation_error",
-                        "message": "Site format is invalid.",
-                        "stage": "slot_validation",
-                    },
+                    failure=PromptComplianceFailure(
+                        code=ErrorCatalog.SLOT_RULE_VIOLATION.value,
+                        message="Site format is invalid.",
+                        stage="slot_validation",
+                    ),
                 ),
             )
             self.assertEqual(server.start_negotiation(start_input), {"started": True})
@@ -250,24 +251,21 @@ class A2ATServerPromptResourceTimingTest(ManagedTempDirTestCase):
             patch("a2a_t.server.a2at_server.ServerNegotiationOrchestratorBuilder") as negotiation_builder_cls,
             patch("a2a_t.server.a2at_server.LLMConfigLoader.load", return_value=build_llm_config()),
             patch("a2a_t.server.a2at_server.LLMClientFactory.create", return_value=object()),
-            patch("a2a_t.common.prompt_resources.local_resources.LocalPromptResourceFiles._default_root_dir", return_value=missing_packaged_root),
+            patch(
+                "a2a_t.common.prompt_resources.local_resources.LocalPromptResourceFiles._default_root_dir",
+                return_value=missing_packaged_root,
+            ),
         ):
             negotiation_builder_cls.return_value.build.return_value = object()
             server = A2ATServer(env_path=env_path)
 
             result = server.check_task_prompt(processed_prompt_text="processed body")
 
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure={
-                    "code": "prompt_resource_load_error",
-                    "message": "Prompt resource file does not exist.",
-                    "stage": "preparation",
-                },
-            ),
-        )
+        self.assertFalse(result.success)
+        assert result.failure is not None
+        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
+        self.assertEqual(result.failure.stage, "preparation")
+        self.assertTrue(result.failure.message.startswith("Failed to read template resource"))
 
 
 if __name__ == "__main__":

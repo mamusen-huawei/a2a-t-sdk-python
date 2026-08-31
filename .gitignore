@@ -31,4 +31,4 @@ a2a-t-sample/.env
 .codex_backup
 .uv-cache
 dist
-.obsidian
+.obsidian.tmp_tests/

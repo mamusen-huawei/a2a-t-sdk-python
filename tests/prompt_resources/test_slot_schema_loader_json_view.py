@@ -86,9 +86,7 @@ class SlotSchemaLoaderJsonViewTest(ManagedTempDirTestCase):
 
         loader = SlotSchemaLoader(root_dir=self.root)
         with self.assertRaises(PromptResourceParseError):
-            loader.load_json_schema(
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US")
-            )
+            loader.load_json_schema(reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"))
 
     def test_removed_legacy_loader_module_is_not_importable(self) -> None:
         module_name = ".".join(

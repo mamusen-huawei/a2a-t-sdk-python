@@ -13,6 +13,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from a2a_t.common.prompt_resources.errors import PromptResourceNotFoundError, PromptResourceParseError
 from a2a_t.common.prompt_resources.models import PromptMessages, ScenarioDefinition, SlotDefinition, SlotSchema
+from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.prompt.analysis.models import (
     ScenarioResolutionFailure,
     ScenarioResolutionResult,
@@ -22,14 +23,9 @@ from a2a_t.prompt.common.errors import PromptSourceError
 from a2a_t.prompt.common.models import PromptReference
 from a2a_t.prompt.validation.constants import INVALID_VALUE, MISSING_INPUT
 from a2a_t.prompt.validation.models import SlotValidationError, SlotValidationResult
-from a2a_t.server.prompt_compliance.constants import (
-    PROMPT_RESOURCE_ACCESS_ERROR,
-    PROMPT_RESOURCE_LOAD_ERROR,
-    SLOT_VALIDATION_ERROR,
-    SLOT_VALIDATION_STAGE,
-    TEMPLATE_LOAD_ERROR,
-)
+from a2a_t.server.prompt_compliance.constants import SLOT_VALIDATION_STAGE
 from a2a_t.server.prompt_compliance.models import (
+    PromptComplianceFailure,
     PromptComplianceResult,
     SemanticValidationError,
     SemanticValidationResult,
@@ -210,9 +206,8 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             scenario_resolver=scenario_resolver or FakeScenarioResolver(self.scenario_resolution),
             template_loader=template_loader or FakeTemplateLoader("Site: {site}"),
             slot_schema_loader=slot_schema_loader or FakeSlotSchemaLoader(self._slot_schema()),
-            prompt_resource_loader=prompt_resource_loader or FakePromptResourceLoader(
-                PromptMessages(system_prompt="Extract slots.", user_prompt="Return slots.")
-            ),
+            prompt_resource_loader=prompt_resource_loader
+            or FakePromptResourceLoader(PromptMessages(system_prompt="Extract slots.", user_prompt="Return slots.")),
             extractor=extractor or FakeExtractor(SlotExtractionResult(slots={"site": "Site A"}, slot_errors=[])),
             validator=validator or FakeValidator(SlotValidationResult(passed=True, slot_errors=[])),
             semantic_validator=semantic_validator or FakeSemanticValidator(passed=True),
@@ -231,7 +226,9 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
 
         result = service.check(processed_prompt_text=self.processed_prompt)
 
-        self.assertEqual(template_loader.last_reference, PromptReference(scenario_code="ran-energy-saving", language="en-US"))
+        self.assertEqual(
+            template_loader.last_reference, PromptReference(scenario_code="ran-energy-saving", language="en-US")
+        )
         self.assertEqual(
             slot_schema_loader.last_json_schema_reference,
             PromptReference(scenario_code="ran-energy-saving", language="en-US"),
@@ -271,11 +268,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": SLOT_VALIDATION_ERROR,
-                    "message": "Site format is invalid.",
-                    "stage": SLOT_VALIDATION_STAGE,
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.SLOT_CONSTRAINT_VIOLATED.value,
+                    message="Site format is invalid.",
+                    stage=SLOT_VALIDATION_STAGE,
+                ),
             ),
         )
 
@@ -306,11 +303,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": SLOT_VALIDATION_ERROR,
-                    "message": "Required slot 'site' is missing.; analysis_target is invalid.",
-                    "stage": SLOT_VALIDATION_STAGE,
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.SLOT_NOT_PROVIDED.value,
+                    message="Required slot 'site' is missing.; analysis_target is invalid.",
+                    stage=SLOT_VALIDATION_STAGE,
+                ),
             ),
         )
 
@@ -337,8 +334,8 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
         self.assertEqual(semantic_validator.calls, 0)
         self.assertEqual(result.success, False)
         assert result.failure is not None
-        self.assertEqual(result.failure["code"], SLOT_VALIDATION_ERROR)
-        self.assertEqual(result.failure["stage"], SLOT_VALIDATION_STAGE)
+        self.assertEqual(result.failure.code, ErrorCatalog.SLOT_NOT_PROVIDED.value)
+        self.assertEqual(result.failure.stage, SLOT_VALIDATION_STAGE)
 
     def test_check_returns_slot_validation_error_when_semantic_validation_fails(self) -> None:
         semantic_validator = FakeSemanticValidator(passed=False, message="semantic mismatch for site")
@@ -365,11 +362,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": SLOT_VALIDATION_ERROR,
-                    "message": "semantic mismatch for site",
-                    "stage": SLOT_VALIDATION_STAGE,
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.SLOT_CONSTRAINT_VIOLATED.value,
+                    message="semantic mismatch for site",
+                    stage=SLOT_VALIDATION_STAGE,
+                ),
             ),
         )
 
@@ -417,7 +414,10 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
 
         self.assertFalse(result.success)
         self.assertIn(
-            ("prompt_compliance_completed success=%s stage=%s code=%s", (False, SLOT_VALIDATION_STAGE, SLOT_VALIDATION_ERROR)),
+            (
+                "prompt_compliance_completed success=%s stage=%s code=%s",
+                (False, SLOT_VALIDATION_STAGE, ErrorCatalog.SLOT_NOT_PROVIDED.value),
+            ),
             logger.info_messages,
         )
 
@@ -432,11 +432,14 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": TEMPLATE_LOAD_ERROR,
-                    "message": "missing template",
-                    "stage": "preparation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.TEMPLATE_NOT_FOUND.value,
+                    message=(
+                        "Template 'ran-energy-saving' does not support language 'en-US'; "
+                        "check the template URI and language setting"
+                    ),
+                    stage="preparation",
+                ),
             ),
         )
 
@@ -446,8 +449,8 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
                 ScenarioResolutionResult(
                     success=False,
                     failure=ScenarioResolutionFailure(
-                        code="processed_prompt_parse_error",
-                        message="No matching scenario.",
+                        code=ErrorCatalog.SCENARIO_NOT_MATCHED.value,
+                        message="The input does not match any known scenario: No matching scenario.",
                         stage="prompt_parse",
                     ),
                 )
@@ -460,11 +463,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": "processed_prompt_parse_error",
-                    "message": "No matching scenario.",
-                    "stage": "prompt_parse",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.SCENARIO_NOT_MATCHED.value,
+                    message="The input does not match any known scenario: No matching scenario.",
+                    stage="prompt_parse",
+                ),
             ),
         )
 
@@ -474,8 +477,8 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
                 ScenarioResolutionResult(
                     success=False,
                     failure=ScenarioResolutionFailure(
-                        code="prompt_resource_load_error",
-                        message="Scenario recognition prompt resources are missing.",
+                        code=ErrorCatalog.TEMPLATE_LOAD_FAILED.value,
+                        message="Failed to read template resource 'Scenario recognition prompt resources are missing.'",
                         stage="preparation",
                     ),
                 )
@@ -488,11 +491,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": "prompt_resource_load_error",
-                    "message": "Scenario recognition prompt resources are missing.",
-                    "stage": "preparation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.TEMPLATE_LOAD_FAILED.value,
+                    message="Failed to read template resource 'Scenario recognition prompt resources are missing.'",
+                    stage="preparation",
+                ),
             ),
         )
 
@@ -507,11 +510,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": "prompt_resource_parse_error",
-                    "message": "template is invalid",
-                    "stage": "preparation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+                    message="Failed to read resource 'template is invalid'",
+                    stage="preparation",
+                ),
             ),
         )
 
@@ -526,17 +529,19 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": "prompt_resource_parse_error",
-                    "message": "slot schema is invalid",
-                    "stage": "preparation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+                    message="Failed to read resource 'slot schema is invalid'",
+                    stage="preparation",
+                ),
             ),
         )
 
     def test_check_returns_preparation_error_when_slot_prompt_resources_are_missing(self) -> None:
         service = self._build_service(
-            prompt_resource_loader=FakePromptResourceLoader(PromptResourceNotFoundError("missing slot extraction prompts")),
+            prompt_resource_loader=FakePromptResourceLoader(
+                PromptResourceNotFoundError("missing slot extraction prompts")
+            ),
         )
 
         result = service.check(processed_prompt_text=self.processed_prompt)
@@ -545,17 +550,19 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": PROMPT_RESOURCE_LOAD_ERROR,
-                    "message": "missing slot extraction prompts",
-                    "stage": "preparation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+                    message="Failed to read resource 'missing slot extraction prompts'",
+                    stage="preparation",
+                ),
             ),
         )
 
     def test_check_returns_preparation_error_when_slot_prompt_resource_access_fails(self) -> None:
         service = self._build_service(
-            prompt_resource_loader=FakePromptResourceLoader(PromptSourceError("prompt resource path escapes local root")),
+            prompt_resource_loader=FakePromptResourceLoader(
+                PromptSourceError("prompt resource path escapes local root")
+            ),
         )
 
         result = service.check(processed_prompt_text=self.processed_prompt)
@@ -564,11 +571,11 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": PROMPT_RESOURCE_ACCESS_ERROR,
-                    "message": "prompt resource path escapes local root",
-                    "stage": "preparation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+                    message="Failed to read resource 'prompt resource path escapes local root'",
+                    stage="preparation",
+                ),
             ),
         )
 
@@ -583,15 +590,14 @@ class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": "prompt_resource_access_error",
-                    "message": "resource path escapes local root",
-                    "stage": "preparation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+                    message="Failed to read resource 'resource path escapes local root'",
+                    stage="preparation",
+                ),
             ),
         )
 
 
 if __name__ == "__main__":
     unittest.main()
-

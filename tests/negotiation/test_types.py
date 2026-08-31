@@ -23,15 +23,15 @@ class FakePromptChecker:
 
 class NegotiationTypesTest(unittest.TestCase):
     def _prompt_compliance_result(self):
-        from a2a_t.server.prompt_compliance.models import PromptComplianceResult
+        from a2a_t.server.prompt_compliance.models import PromptComplianceFailure, PromptComplianceResult
 
         return PromptComplianceResult(
             success=False,
-            failure={
-                "code": "slot_validation_error",
-                "message": "Need more information",
-                "stage": "slot_validation",
-            },
+            failure=PromptComplianceFailure(
+                code="slot.rule_violation",
+                message="Need more information",
+                stage="slot_validation",
+            ),
         )
 
     def _context(self):
@@ -67,9 +67,7 @@ class NegotiationTypesTest(unittest.TestCase):
         from a2a_t.negotiation.rendering.negotiation_prompt_renderer import NegotiationPromptRenderer
         from a2a_t.negotiation.types.information import InformationNegotiationType
 
-        checker = FakePromptChecker(
-            self._prompt_compliance_result()
-        )
+        checker = FakePromptChecker(self._prompt_compliance_result())
         negotiation_type = InformationNegotiationType(
             prompt_renderer=NegotiationPromptRenderer(),
             prompt_checker=checker,
@@ -114,16 +112,16 @@ class NegotiationTypesTest(unittest.TestCase):
     def test_information_type_on_server_side_returns_error_when_prompt_fails_without_negotiation(self) -> None:
         from a2a_t.negotiation.rendering.negotiation_prompt_renderer import NegotiationPromptRenderer
         from a2a_t.negotiation.types.information import InformationNegotiationType
-        from a2a_t.server.prompt_compliance.models import PromptComplianceResult
+        from a2a_t.server.prompt_compliance.models import PromptComplianceFailure, PromptComplianceResult
 
         checker = FakePromptChecker(
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": "processed_prompt_parse_error",
-                    "message": "Task prompt metadata is invalid.",
-                    "stage": "prompt_parse",
-                },
+                failure=PromptComplianceFailure(
+                    code="scenario.not_matched",
+                    message="Task prompt metadata is invalid.",
+                    stage="prompt_parse",
+                ),
             )
         )
         negotiation_type = InformationNegotiationType(

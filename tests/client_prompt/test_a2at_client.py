@@ -196,7 +196,10 @@ class A2ATClientPromptResourceTimingTest(ManagedTempDirTestCase):
             patch("a2a_t.client.a2at_client.ClientNegotiationOrchestratorBuilder") as negotiation_builder_cls,
             patch("a2a_t.client.a2at_client.LLMConfigLoader.load", return_value=build_llm_config()),
             patch("a2a_t.client.a2at_client.LLMClientFactory.create", return_value=object()),
-            patch("a2a_t.common.prompt_resources.local_resources.LocalPromptResourceFiles._default_root_dir", return_value=missing_packaged_root),
+            patch(
+                "a2a_t.common.prompt_resources.local_resources.LocalPromptResourceFiles._default_root_dir",
+                return_value=missing_packaged_root,
+            ),
         ):
             negotiation_builder_cls.return_value.build.return_value = object()
             client = A2ATClient(env_path=env_path)
@@ -205,7 +208,7 @@ class A2ATClientPromptResourceTimingTest(ManagedTempDirTestCase):
 
         self.assertFalse(result.success)
         self.assertIsNotNone(result.failure)
-        self.assertEqual(result.failure.code, "prompt_resource_load_error")
+        self.assertEqual(result.failure.code, "template.load_failed")
         self.assertEqual(result.failure.stage, "preparation")
 
 

@@ -14,6 +14,7 @@ if str(SRC_ROOT) not in sys.path:
 
 from a2a_t.common.prompt_resources import PromptResourceLoader, ScenarioLoader, SlotSchemaLoader, TemplateLoader
 from a2a_t.config.models import PromptRuntimeConfig
+from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.llm.models import LLMResponse
 from a2a_t.prompt.analysis import ScenarioRecognizer, ScenarioResolutionOrchestrator, SlotExtractor
 from tests.support import ManagedTempDirTestCase
@@ -24,7 +25,9 @@ class FakeSequencedLLMClient:
         self._response_texts = list(response_texts)
         self.calls: list[dict[str, object]] = []
 
-    def structured(self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object) -> LLMResponse:
+    def structured(
+        self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object
+    ) -> LLMResponse:
         self.calls.append({"messages": messages, "json_schema": json_schema, "kwargs": kwargs})
         return LLMResponse(
             content=self._response_texts.pop(0),
@@ -65,7 +68,10 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
         self._write_resource_file("prompts/scenario_recognition/en-US/user.md", "Choose scenario.")
         self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
         self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
-        self._write_resource_file("templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}\nNotes: {additional_notes}")
+        self._write_resource_file(
+            "templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md",
+            "Site: {site}\nNotes: {additional_notes}",
+        )
         self._write_resource_file(
             "slots/Task-T/network-layer/ran-energy-saving/v1/en-US/slot.json",
             json.dumps(
@@ -126,10 +132,12 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
         result = orchestrator.generate("Analyze Site A.")
 
         self.assertFalse(result.success)
-        self.assertEqual(result.failure.code, "prompt_resource_load_error")
+        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
         self.assertEqual(result.failure.stage, "preparation")
 
-    def test_generate_returns_prompt_resource_load_error_when_scenario_prompts_are_missing_for_requested_language(self) -> None:
+    def test_generate_returns_prompt_resource_load_error_when_scenario_prompts_are_missing_for_requested_language(
+        self,
+    ) -> None:
         self._write_resource_file(
             "scenarios/en-US/scenarios.json",
             json.dumps(
@@ -172,7 +180,7 @@ class PromptGenerationOrchestratorLanguageStrictnessTest(ManagedTempDirTestCase)
         result = orchestrator.generate("Analyze Site A.")
 
         self.assertFalse(result.success)
-        self.assertEqual(result.failure.code, "prompt_resource_load_error")
+        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
         self.assertEqual(result.failure.stage, "preparation")
 
 

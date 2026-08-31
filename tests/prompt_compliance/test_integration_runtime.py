@@ -15,13 +15,14 @@ if str(SRC_ROOT) not in sys.path:
 
 from a2a_t.common.prompt_resources import PromptResourceLoader, SlotSchemaLoader, TemplateLoader
 from a2a_t.common.prompt_resources.models import ScenarioDefinition
+from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.llm.models import LLMClientConfig, LLMResponse
 from a2a_t.prompt.analysis import SlotExtractor
 from a2a_t.prompt.analysis.models import ScenarioResolutionResult
 from a2a_t.prompt.common.models import PromptReference
 from a2a_t.prompt.validation.json_schema_slot_validator import JsonSchemaSlotValidator
 from a2a_t.server.a2at_server import A2ATServer
-from a2a_t.server.prompt_compliance.models import PromptComplianceResult
+from a2a_t.server.prompt_compliance.models import PromptComplianceFailure, PromptComplianceResult
 from a2a_t.server.prompt_compliance.prompt_compliance_orchestrator import PromptComplianceOrchestrator
 from tests.support import TEST_ENV_PATH, ManagedTempDirTestCase
 
@@ -45,7 +46,9 @@ class FakeSequencedLLMClient:
     def __init__(self, response_texts: list[str]) -> None:
         self._response_texts = list(response_texts)
 
-    def structured(self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object) -> LLMResponse:
+    def structured(
+        self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object
+    ) -> LLMResponse:
         return LLMResponse(
             content=self._response_texts.pop(0),
             model="fake-model",
@@ -81,7 +84,9 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
         path.write_text(content, encoding="utf-8")
 
     def test_handler_check_task_prompt_succeeds_with_real_shared_components(self) -> None:
-        self._write_resource_file("templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}")
+        self._write_resource_file(
+            "templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}"
+        )
         self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
         self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
         self._write_resource_file(
@@ -123,9 +128,7 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             slot_schema_loader=SlotSchemaLoader(root_dir=self.root),
             prompt_resource_loader=PromptResourceLoader(root_dir=self.root),
             extractor=SlotExtractor(
-                llm_client=FakeSequencedLLMClient(
-                    ['{"slots": {"site": "Site A"}, "slot_errors": []}']
-                )
+                llm_client=FakeSequencedLLMClient(['{"slots": {"site": "Site A"}, "slot_errors": []}'])
             ),
             validator=JsonSchemaSlotValidator(),
         )
@@ -133,7 +136,10 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             patch("a2a_t.server.a2at_server._default_env_path", return_value=TEST_ENV_PATH),
             patch("a2a_t.server.a2at_server.LLMConfigLoader.load", return_value=build_llm_config()),
             patch("a2a_t.server.a2at_server.LLMClientFactory.create", return_value=object()),
-            patch("a2a_t.server.a2at_server.PromptComplianceOrchestratorBuilder", return_value=FakePromptComplianceBuilder(service)),
+            patch(
+                "a2a_t.server.a2at_server.PromptComplianceOrchestratorBuilder",
+                return_value=FakePromptComplianceBuilder(service),
+            ),
             patch("a2a_t.server.a2at_server.ServerNegotiationOrchestratorBuilder") as negotiation_builder_cls,
         ):
             negotiation_builder_cls.return_value.build.return_value = object()
@@ -144,7 +150,10 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
         self.assertEqual(result, PromptComplianceResult(success=True))
 
     def test_handler_check_task_prompt_returns_business_constraint_message_for_invalid_slot_value(self) -> None:
-        self._write_resource_file("templates/Notification-T/network-layer/subscribe-incident/v1/en-US/template.md", "Levels: {subscription_condition_incident_level}")
+        self._write_resource_file(
+            "templates/Notification-T/network-layer/subscribe-incident/v1/en-US/template.md",
+            "Levels: {subscription_condition_incident_level}",
+        )
         self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
         self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
         self._write_resource_file(
@@ -157,10 +166,10 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
                     "properties": {
                         "subscription_condition_incident_level": {
                             "type": "string",
-                            "pattern": "^\\s*\\[(?:\\s*\"(?:critical|major)\"\\s*(?:,\\s*\"(?:critical|major)\"\\s*)*)\\]\\s*$",
+                            "pattern": '^\\s*\\[(?:\\s*"(?:critical|major)"\\s*(?:,\\s*"(?:critical|major)"\\s*)*)\\]\\s*$',
                             "x-a2at-slot-type": "list",
                             "x-a2at-value-constraint": "Must be a JSON array string containing one or more of: critical, major.",
-                            "examples": ["[\"critical\"]"],
+                            "examples": ['["critical"]'],
                         }
                     },
                     "required": [],
@@ -196,7 +205,10 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             patch("a2a_t.server.a2at_server._default_env_path", return_value=TEST_ENV_PATH),
             patch("a2a_t.server.a2at_server.LLMConfigLoader.load", return_value=build_llm_config()),
             patch("a2a_t.server.a2at_server.LLMClientFactory.create", return_value=object()),
-            patch("a2a_t.server.a2at_server.PromptComplianceOrchestratorBuilder", return_value=FakePromptComplianceBuilder(service)),
+            patch(
+                "a2a_t.server.a2at_server.PromptComplianceOrchestratorBuilder",
+                return_value=FakePromptComplianceBuilder(service),
+            ),
             patch("a2a_t.server.a2at_server.ServerNegotiationOrchestratorBuilder") as negotiation_builder_cls,
         ):
             negotiation_builder_cls.return_value.build.return_value = object()
@@ -208,16 +220,19 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             result,
             PromptComplianceResult(
                 success=False,
-                failure={
-                    "code": "slot_validation_error",
-                    "message": "Must be a JSON array string containing one or more of: critical, major.",
-                    "stage": "slot_validation",
-                },
+                failure=PromptComplianceFailure(
+                    code=ErrorCatalog.SLOT_CONSTRAINT_VIOLATED.value,
+                    message="Must be a JSON array string containing one or more of: critical, major.",
+                    stage="slot_validation",
+                ),
             ),
         )
 
     def test_handler_check_task_prompt_succeeds_when_optional_subscribe_incident_slots_are_null(self) -> None:
-        self._write_resource_file("templates/Notification-T/network-layer/subscribe-incident/v1/en-US/template.md", "Name: {subscription_condition_incident_name}\nLevels: {subscription_condition_incident_level}")
+        self._write_resource_file(
+            "templates/Notification-T/network-layer/subscribe-incident/v1/en-US/template.md",
+            "Name: {subscription_condition_incident_name}\nLevels: {subscription_condition_incident_level}",
+        )
         self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
         self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
         self._write_resource_file(
@@ -232,14 +247,14 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
                             "type": "string",
                             "x-a2at-slot-type": "list",
                             "x-a2at-value-constraint": "Must be a valid incident name list.",
-                            "examples": ["[\"fiber break\"]"],
+                            "examples": ['["fiber break"]'],
                         },
                         "subscription_condition_incident_level": {
                             "type": "string",
-                            "pattern": "^\\s*\\[(?:\\s*\"(?:critical|major)\"\\s*(?:,\\s*\"(?:critical|major)\"\\s*)*)?\\]\\s*$",
+                            "pattern": '^\\s*\\[(?:\\s*"(?:critical|major)"\\s*(?:,\\s*"(?:critical|major)"\\s*)*)?\\]\\s*$',
                             "x-a2at-slot-type": "list",
                             "x-a2at-value-constraint": "Must be a JSON array string containing one or more of: critical, major.",
-                            "examples": ["[\"critical\"]"],
+                            "examples": ['["critical"]'],
                         },
                     },
                     "required": [],
@@ -277,7 +292,10 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             patch("a2a_t.server.a2at_server._default_env_path", return_value=TEST_ENV_PATH),
             patch("a2a_t.server.a2at_server.LLMConfigLoader.load", return_value=build_llm_config()),
             patch("a2a_t.server.a2at_server.LLMClientFactory.create", return_value=object()),
-            patch("a2a_t.server.a2at_server.PromptComplianceOrchestratorBuilder", return_value=FakePromptComplianceBuilder(service)),
+            patch(
+                "a2a_t.server.a2at_server.PromptComplianceOrchestratorBuilder",
+                return_value=FakePromptComplianceBuilder(service),
+            ),
             patch("a2a_t.server.a2at_server.ServerNegotiationOrchestratorBuilder") as negotiation_builder_cls,
         ):
             negotiation_builder_cls.return_value.build.return_value = object()
