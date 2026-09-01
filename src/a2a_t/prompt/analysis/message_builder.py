@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
+
 from a2a_t.common.prompt_resources.models import ScenarioDefinition, SlotSchema
 from a2a_t.prompt.common.models import PromptReference
 
@@ -47,8 +50,14 @@ class AnalysisMessageBuilder:
         slot_schema: SlotSchema,
         system_prompt: str,
         user_prompt: str,
+        data_schema: Mapping[str, object] | None = None,
     ) -> list[dict[str, str]]:
-        """Build the structured message list used for slot extraction."""
+        """Build the structured message list used for slot extraction.
+
+        The optional ``data_schema`` (field name to description) appends one ``[data_schema]``
+        section describing the meaning of each structured input field — the schema-guided
+        extraction variant of the Java ``DefaultStructuredPromptSlotValueExtractor``.
+        """
         slot_lines = [
             (
                 f"- name: {slot.name}\n"
@@ -59,15 +68,16 @@ class AnalysisMessageBuilder:
             )
             for slot in slot_schema.slots
         ]
-        content = "\n\n".join(
-            [
-                f"[user_prompt]\n{user_prompt}",
-                f"[scenario_code]\n{reference.scenario_code}",
-                f"[language]\n{reference.language}",
-                f"[input]\n{normalized_input}",
-                "[slots]\n" + "\n".join(slot_lines),
-            ]
-        )
+        sections = [
+            f"[user_prompt]\n{user_prompt}",
+            f"[scenario_code]\n{reference.scenario_code}",
+            f"[language]\n{reference.language}",
+            f"[input]\n{normalized_input}",
+            "[slots]\n" + "\n".join(slot_lines),
+        ]
+        if data_schema:
+            sections.append(f"[data_schema]\n{json.dumps(dict(data_schema), ensure_ascii=False)}")
+        content = "\n\n".join(sections)
         return [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": content},

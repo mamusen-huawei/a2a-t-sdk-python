@@ -2,6 +2,35 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Final
+
+from a2a_t.core.template_uri import TemplateUri
+
+#: Source marker of templates served from the packaged prompt resource tree (Java ``classpath``).
+SOURCE_PACKAGED: Final[str] = "packaged"
+
+#: Source marker of templates served from the configured local root.
+SOURCE_LOCAL: Final[str] = "local"
+
+
+@dataclass(frozen=True, slots=True)
+class PromptTemplate:
+    """One loadable prompt template of any A2A-T extension (port of the Java ``PromptTemplate``).
+
+    Attributes:
+        template_uri: typed template URI such as ``Task-T/network-layer/ran-energy-saving/v1`` or
+            ``Negotiation-T/information-negotiation/propose/v1``.
+        description: template description taken from the leading HTML comment of the template file;
+            an empty string when the template has no such comment.
+        content: full template file text; ``None`` when the template content is unavailable.
+        source: effective origin of the loaded template, either :data:`SOURCE_PACKAGED` or
+            :data:`SOURCE_LOCAL`.
+    """
+
+    template_uri: TemplateUri
+    description: str
+    content: str | None
+    source: str
 
 
 @dataclass(slots=True)

@@ -158,8 +158,7 @@ class JsonSchemaSlotValidatorTest(unittest.TestCase):
                     "incident_level": {
                         "type": "string",
                         "pattern": (
-                            "^\\s*\\[(?:\\s*\"(?:critical|major)\"\\s*"
-                            "(?:,\\s*\"(?:critical|major)\"\\s*)*)\\]\\s*$"
+                            '^\\s*\\[(?:\\s*"(?:critical|major)"\\s*(?:,\\s*"(?:critical|major)"\\s*)*)\\]\\s*$'
                         ),
                         "x-a2at-value-constraint": (
                             "Must be a JSON array string containing one or more of: critical, major."

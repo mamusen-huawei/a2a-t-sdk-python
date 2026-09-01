@@ -1,7 +1,8 @@
 """Metadata model of generated A2A-T messages.
 
 Port of the Java ``core/model`` triple :class:`MetadataContent`, :class:`NegotiationContext` and
-``NegotiationPerformative``. A generated message travels in A2A-T metadata under its extension URI
+``NegotiationPerformative``, plus the extension URI constants of Java ``ExtensionUriConstants``. A
+generated message travels in A2A-T metadata under its extension URI
 together with the template it was rendered from and, for negotiation messages, the session context
 of the negotiation it belongs to; :meth:`MetadataContent.build_metadata_content` builds that map.
 
@@ -17,9 +18,12 @@ from enum import StrEnum
 from typing import ClassVar, Final
 
 __all__ = [
+    "AUTHORIZATION_T_EXTENSION_URI",
     "NEGOTIATION_CONTEXT_METADATA_KEY",
     "NEGOTIATION_T_EXTENSION_URI",
     "NEGOTIATION_T_EXTENSION_URI_NL",
+    "NOTIFICATION_T_EXTENSION_URI",
+    "TASK_T_EXTENSION_URI",
     "TEMPLATE_URI_METADATA_KEY",
     "MetadataContent",
     "NegotiationContext",
@@ -31,6 +35,20 @@ TEMPLATE_URI_METADATA_KEY: Final[str] = "templateUri"
 
 #: Metadata key carrying the negotiation session context alongside the message itself.
 NEGOTIATION_CONTEXT_METADATA_KEY: Final[str] = "negotiationContext"
+
+#: URI of the Task-T extension (Java ``ExtensionUriConstants``): the extension under which
+#: generated task prompts travel in A2A-T metadata.
+TASK_T_EXTENSION_URI: Final[str] = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Task-T/v1"
+
+#: URI of the Authorization-T extension (Java ``ExtensionUriConstants``).
+AUTHORIZATION_T_EXTENSION_URI: Final[str] = (
+    "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Authorization-T/v1"
+)
+
+#: URI of the Notification-T extension (Java ``ExtensionUriConstants``).
+NOTIFICATION_T_EXTENSION_URI: Final[str] = (
+    "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1"
+)
 
 #: Canonical URI of the Negotiation-T extension (Java ``ExtensionUriConstants`` negotiation slice):
 #: the URI under which generated negotiation messages travel in A2A-T metadata.

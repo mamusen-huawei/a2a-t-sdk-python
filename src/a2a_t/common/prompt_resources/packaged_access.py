@@ -26,6 +26,7 @@ from a2a_t.core.prompt_resource_key import PromptResourceKey
 __all__ = [
     "PackagedResourceReader",
     "list_category_directories",
+    "load_category_files",
     "load_text",
     "prompt_resources_root",
 ]
@@ -98,6 +99,51 @@ def list_category_directories(category: str) -> tuple[str, ...]:
     return names
 
 
+def load_category_files(category: str, file_name: str) -> dict[str, str]:
+    """Walk one packaged category tree and return every matching file's text.
+
+    The directory-driven enumeration behind the template catalog (Java
+    ``PromptTemplateCatalog.captureClasspathTemplates``): the whole ``<category>/`` subtree of the
+    packaged tree is walked recursively, so every extension directory that appears under it —
+    including extensions bundled later — is discovered instead of being listed. Unlike
+    :func:`load_text` the result is not cached here: the catalog captures the walked entries once
+    into its own frozen snapshot, which is the D9 freeze point of this read family.
+
+    Args:
+        category: category directory under ``prompt_resources/``, such as ``templates``.
+        file_name: file name of the payloads to collect, such as ``template.md``.
+
+    Returns:
+        a mapping of category-relative path (forward slashes, e.g.
+        ``Negotiation-T/common/abort/v1/zh-CN/template.md``) to the UTF-8 text payload; empty when
+        the category exists in no packaged root. A file that cannot be read is skipped.
+    """
+    root = _resource_files(_PACKAGE).joinpath(_PROMPT_RESOURCES_ROOT, category)
+    entries: dict[str, str] = {}
+    _collect_files(root, "", file_name, entries)
+    return entries
+
+
+def _collect_files(directory: Traversable, prefix: str, file_name: str, entries: dict[str, str]) -> None:
+    """Recursively collect one category subtree's matching files into the entries map.
+
+    ``prefix`` accumulates the category-relative directory path of ``directory`` so the collected
+    keys need no parent traversal (``Traversable`` has no parent accessor).
+    """
+    try:
+        children = list(directory.iterdir())
+    except (OSError, FileNotFoundError, NotADirectoryError):
+        return
+    for child in children:
+        if child.is_dir():
+            _collect_files(child, f"{prefix}/{child.name}" if prefix else child.name, file_name, entries)
+        elif child.name == file_name:
+            try:
+                entries[f"{prefix}/{child.name}" if prefix else child.name] = child.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+
+
 def prompt_resources_root() -> Path | None:
     """Return the filesystem path of the packaged prompt resource root when one exists.
 
@@ -127,6 +173,10 @@ class PackagedResourceReader:
     def category_types(self, category: str) -> tuple[str, ...]:
         """Return the first-level directory names available under one packaged category."""
         return list_category_directories(category)
+
+    def category_files(self, category: str, file_name: str) -> dict[str, str]:
+        """Return every file of one packaged category matching a file name (reader seam)."""
+        return load_category_files(category, file_name)
 
 
 def _resource_of(relative_path: str) -> Traversable:

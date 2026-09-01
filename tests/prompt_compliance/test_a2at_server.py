@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
 
@@ -155,22 +157,25 @@ class A2ATServerTest(unittest.TestCase):
                     ),
                 ),
             )
-            self.assertEqual(server.start_negotiation(start_input), {"started": True})
-            self.assertEqual(
-                server.receive_negotiation(
-                    "Need more information",
-                    {
-                        "negotiationType": "information",
-                        "negotiationId": "neg-1",
-                        "role": "server",
-                        "round": 1,
-                        "status": "in-progress",
-                        "extra": {},
-                    },
-                ),
-                {"received": True},
-            )
-            self.assertEqual(server.continue_negotiation(continue_input), {"continued": True})
+            # The three legacy state-machine methods keep their forwarding behavior for one
+            # release and warn on every call (D1 deprecation shim round).
+            with pytest.warns(DeprecationWarning, match=r"A2ATServer\.\w+ is deprecated since 1\.1\.0"):
+                self.assertEqual(server.start_negotiation(start_input), {"started": True})
+                self.assertEqual(
+                    server.receive_negotiation(
+                        "Need more information",
+                        {
+                            "negotiationType": "information",
+                            "negotiationId": "neg-1",
+                            "role": "server",
+                            "round": 1,
+                            "status": "in-progress",
+                            "extra": {},
+                        },
+                    ),
+                    {"received": True},
+                )
+                self.assertEqual(server.continue_negotiation(continue_input), {"continued": True})
 
         load_llm_config.assert_called_once_with(TEST_ENV_PATH)
         create_llm_client.assert_called_once_with(llm_config.provider, llm_config, logger=logger)

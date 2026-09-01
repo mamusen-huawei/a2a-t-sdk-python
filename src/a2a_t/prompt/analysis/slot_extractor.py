@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from typing import Any
 
 from a2a_t.common.prompt_resources.models import SlotSchema
@@ -37,14 +38,21 @@ class SlotExtractor:
         slot_schema: SlotSchema,
         system_prompt: str,
         user_prompt: str,
+        data_schema: Mapping[str, object] | None = None,
     ) -> SlotExtractionResult:
-        """Run slot extraction and normalize the structured LLM response."""
+        """Run slot extraction and normalize the structured LLM response.
+
+        The optional ``data_schema`` describes the meaning of each structured input field and is
+        appended to the extraction user message (Java ``extractSlots(input, code, language,
+        dataSchema)`` — the schema-guided variant of the metadata-content generation APIs).
+        """
         messages = self._message_builder.build_slot_extraction_messages(
             normalized_input=normalized_input,
             reference=reference,
             slot_schema=slot_schema,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
+            data_schema=data_schema,
         )
         response = self._llm_client.structured(
             messages=messages,

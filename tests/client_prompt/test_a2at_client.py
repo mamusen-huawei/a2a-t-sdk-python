@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
 
@@ -131,22 +133,25 @@ class A2ATClientTest(unittest.TestCase):
             result = client.generate_task_prompt("Analyze Site A.")
 
             self.assertIs(result, prompt_result)
-            self.assertEqual(client.start_negotiation(start_input), {"started": True})
-            self.assertEqual(
-                client.receive_negotiation(
-                    "Clarify intent",
-                    {
-                        "negotiationType": "target",
-                        "negotiationId": "neg-1",
-                        "role": "client",
-                        "round": 1,
-                        "status": "in-progress",
-                        "extra": {},
-                    },
-                ),
-                {"received": True},
-            )
-            self.assertEqual(client.continue_negotiation(continue_input), {"continued": True})
+            # The three legacy state-machine methods keep their forwarding behavior for one
+            # release and warn on every call (D1 deprecation shim round).
+            with pytest.warns(DeprecationWarning, match=r"A2ATClient\.\w+ is deprecated since 1\.1\.0"):
+                self.assertEqual(client.start_negotiation(start_input), {"started": True})
+                self.assertEqual(
+                    client.receive_negotiation(
+                        "Clarify intent",
+                        {
+                            "negotiationType": "target",
+                            "negotiationId": "neg-1",
+                            "role": "client",
+                            "round": 1,
+                            "status": "in-progress",
+                            "extra": {},
+                        },
+                    ),
+                    {"received": True},
+                )
+                self.assertEqual(client.continue_negotiation(continue_input), {"continued": True})
 
         load_llm_config.assert_called_once_with(TEST_ENV_PATH)
         create_llm_client.assert_called_once_with(llm_config.provider, llm_config, logger=None)

@@ -154,6 +154,28 @@ class LocalResourceSnapshot:
                 types.add(rest[:separator])
         return tuple(sorted(types))
 
+    def category_files(self, category: str, file_name: str) -> dict[str, str]:
+        """Return the captured files of one category matching a file name.
+
+        The local half of the directory-driven template enumeration consumed by the template
+        catalog (Java ``PromptTemplateCatalog.localTemplates``): every captured path under the
+        category ending in ``file_name`` is reported with its captured text, so later file edits
+        stay invisible exactly like every other snapshot read (D9).
+
+        Args:
+            category: category prefix, such as ``templates``.
+            file_name: file name of the payloads to report, such as ``template.md``.
+
+        Returns:
+            a mapping of category-relative path (forward slashes) to the captured text; the paths
+            end with ``/<language>/<file_name>`` for template-shaped categories.
+        """
+        prefix = category + _SEPARATOR
+        suffix = _SEPARATOR + file_name
+        return {
+            key: text for key, text in sorted(self._content.items()) if key.startswith(prefix) and key.endswith(suffix)
+        }
+
     def _snapshot_key(self, key: PromptResourceKey) -> str:
         """Return the validated root-relative snapshot key of one resource key."""
         relative_path = key.relative_path()

@@ -22,7 +22,9 @@ class FakeLLMClient:
         self._response_text = response_text
         self.calls: list[dict[str, object]] = []
 
-    def structured(self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object) -> LLMResponse:
+    def structured(
+        self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object
+    ) -> LLMResponse:
         self.calls.append({"messages": messages, "json_schema": json_schema, "kwargs": kwargs})
         return LLMResponse(content=self._response_text, model="fake-model", usage={}, metadata={})
 
@@ -153,12 +155,7 @@ class SlotExtractorTest(unittest.TestCase):
             )
 
     def test_extract_ignores_unknown_slot_key_in_slots_payload(self) -> None:
-        llm_client = FakeLLMClient(
-            (
-                '{"slots": {"site": "Site A", "unexpected_slot": "bad"}, '
-                '"slot_errors": []}'
-            )
-        )
+        llm_client = FakeLLMClient(('{"slots": {"site": "Site A", "unexpected_slot": "bad"}, "slot_errors": []}'))
 
         from a2a_t.prompt.analysis.slot_extractor import SlotExtractor
 
@@ -199,4 +196,3 @@ class SlotExtractorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

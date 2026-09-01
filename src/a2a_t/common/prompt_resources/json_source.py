@@ -49,7 +49,7 @@ class ResourceReader(Protocol):
     """Read seam the resource access layer routes for one source.
 
     Implementations: the packaged reader (module-level frozen cache, missing never cached) and the
-    local snapshot (captured once at construction, D9). Both expose the same two operations so the
+    local snapshot (captured once at construction, D9). Both expose the same three operations so the
     generic loaders never care which source is active.
     """
 
@@ -63,6 +63,11 @@ class ResourceReader(Protocol):
 
     def category_types(self, category: str) -> tuple[str, ...]:
         """Return the first-level directory names available under one routed category."""
+        ...
+
+    def category_files(self, category: str, file_name: str) -> dict[str, str]:
+        """Return every file of one routed category matching a file name (category-relative path
+        to text), walking the whole category subtree."""
         ...
 
 

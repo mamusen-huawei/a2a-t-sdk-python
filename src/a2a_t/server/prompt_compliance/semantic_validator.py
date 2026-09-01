@@ -12,5 +12,4 @@ class SemanticSlotValidator(Protocol):
         language: str,
         slot_json_schema: dict[str, object],
         extracted_slots: dict[str, str | None],
-    ) -> SemanticValidationResult:
-        ...
+    ) -> SemanticValidationResult: ...

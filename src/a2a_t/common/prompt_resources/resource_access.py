@@ -72,6 +72,12 @@ _PACKAGED_FIXED_CATEGORIES: Final[tuple[str, ...]] = ("prompts", "errors")
 
 _LOCAL_ROOT_DIR_KEY: Final[str] = "A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR"
 
+#: Category of the template tree every extension publishes its templates under.
+_TEMPLATE_CATEGORY: Final[str] = "templates"
+
+#: File name of one template payload inside the template tree.
+_TEMPLATE_FILE_NAME: Final[str] = "template.md"
+
 
 def create(config: PromptRuntimeConfig) -> PromptResourceAccess:
     """Create the resource access object for one prompt runtime configuration.
@@ -172,6 +178,21 @@ class PromptResourceAccess(ABC):
             ) from error
         except (OSError, UnicodeDecodeError) as error:
             raise _load_failed(identifier) from error
+
+    def template_entries(self) -> dict[str, str]:
+        """Enumerate every template file of the routed ``templates/`` tree (D31).
+
+        The directory-driven enumeration consumed by the template catalog: the whole routed
+        templates tree — every extension directory it contains, negotiation templates included —
+        is walked so extensions added later are discovered instead of being listed (Java
+        ``PromptTemplateCatalog`` directory walking). The caller captures the returned mapping once
+        into its own frozen snapshot; this read family has no module-level cache of its own.
+
+        Returns:
+            a mapping of templates-category-relative path (forward slashes, such as
+            ``Negotiation-T/common/abort/v1/zh-CN/template.md``) to the template text.
+        """
+        return self._routed_reader.category_files(_TEMPLATE_CATEGORY, _TEMPLATE_FILE_NAME)
 
     def slot_schema(self, template_uri: str | TemplateUri, language: str) -> dict[str, Any]:
         """Load one template's slot schema document (routed).

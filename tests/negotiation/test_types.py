@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import sys
 import unittest
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -210,3 +213,26 @@ class NegotiationTypesTest(unittest.TestCase):
         self.assertFalse(result.need_response)
         self.assertEqual(result.facts, {})
         self.assertEqual(result.message, "clarify this")
+
+
+# --------------------------------------------------------------------------------------
+# Deprecation shim round (D1): the retired state-machine packages this suite pins emit a
+# DeprecationWarning when imported and will be removed in the next release. The behavioral
+# assertions above stay untouched; this only pins the warning contract of the deprecated
+# entry points this file exercises (types + their common/rendering dependencies).
+# --------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "package_name",
+    (
+        "a2a_t.negotiation.types",
+        "a2a_t.negotiation.common",
+        "a2a_t.negotiation.rendering",
+    ),
+)
+def test_importing_a_deprecated_negotiation_package_warns(package_name: str) -> None:
+    module = importlib.import_module(package_name)
+
+    with pytest.warns(DeprecationWarning, match=f"{package_name} package is deprecated since 1\\.1\\.0"):
+        importlib.reload(module)
