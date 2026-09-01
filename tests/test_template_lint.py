@@ -97,6 +97,21 @@ def error_templates() -> dict[str, str]:
     }
 
 
+def real_catalog_error_templates() -> dict[str, str]:
+    """Builds error templates covering the real catalog (CLI strict-gate green).
+
+    The CLI run cannot inject a synthetic catalog, so the root used by CLI
+    pass-path tests must satisfy the real code table. Each template mentions
+    every declared fact parameter so the placeholder contract holds.
+    """
+    from a2a_t.core.errors.catalog import ErrorCatalog
+
+    return {
+        member.value: " ".join([f"Error {member.name}."] + [f"{{{fact}}}" for fact in member.fact_parameters])
+        for member in ErrorCatalog
+    }
+
+
 def negotiation_section_keys() -> tuple[set[str], set[str]]:
     sections: set[str] = set(linter.NEGOTIATION_STATIC_SECTIONS)
     for keys in linter.NEGOTIATION_PROFILES.values():
@@ -1126,9 +1141,13 @@ def run_cli(resource_root: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-@pytest.mark.skipif(REAL_CATALOG_AVAILABLE, reason="P1 catalog landed: the strict gate needs the real code table")
 def test_cli_passes_on_a_valid_root(tmp_path: Path) -> None:
-    proc = run_cli(build_resource_root(tmp_path / "prompt_resources"))
+    root = build_resource_root(tmp_path / "prompt_resources")
+    # The CLI run cannot inject a synthetic catalog; swap in templates that
+    # satisfy the real code table so the strict gate is green on this root.
+    for language in linter.NEGOTIATION_LANGUAGES:
+        write_json(root / "errors" / language / "errors.json", real_catalog_error_templates())
+    proc = run_cli(root)
     assert proc.returncode == 0
     assert "A2A-T template lint passed" in proc.stdout
 
