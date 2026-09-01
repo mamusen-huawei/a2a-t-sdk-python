@@ -71,6 +71,47 @@ class TestSourceRouting:
         assert info.value.code is ErrorCatalog.INFRA_CONFIG_INVALID
 
 
+class TestSourceTypeDefault:
+    """The D10 step-2 release flip: the out-of-the-box source type is ``packaged``.
+
+    The pre-1.1.0 default (``local_file``) is restored by setting
+    ``A2AT_PROMPT_SOURCE_TYPE=local_file``; the routing itself is unchanged and pinned above.
+    """
+
+    def test_dataclass_default_is_packaged(self) -> None:
+        assert PromptRuntimeConfig().source_type == "packaged"
+
+    @pytest.mark.parametrize(
+        "values",
+        [{}, {"A2AT_PROMPT_SOURCE_TYPE": ""}],
+        ids=["absent", "blank"],
+    )
+    def test_from_mapping_defaults_to_packaged(self, values: dict[str, str]) -> None:
+        # Only an absent or empty value falls back to the default; a whitespace value keeps the
+        # pre-existing parsing semantics and fails in ``create`` as an unsupported source type.
+        assert PromptRuntimeConfig.from_mapping(values).source_type == "packaged"
+
+    @pytest.mark.parametrize("source_type", ["packaged", "local_file"])
+    def test_from_mapping_honors_an_explicit_source_type(self, source_type: str) -> None:
+        values = {"A2AT_PROMPT_SOURCE_TYPE": source_type}
+        assert PromptRuntimeConfig.from_mapping(values).source_type == source_type
+
+    def test_fresh_env_without_source_type_reads_the_installed_package_tree(self, tmp_path: Path) -> None:
+        from a2a_t.config.models import A2ATConfig
+
+        env_path = tmp_path / ".env"
+        env_path.write_text("A2AT_LANGUAGE=en-US\n", encoding="utf-8")
+
+        config = A2ATConfig.load(env_path)
+
+        assert config.prompt.source_type == "packaged"
+        access = create(config.prompt)
+        assert isinstance(access, PackagedPromptResourceAccess)
+        assert access.template_text(ENERGY_SAVING_URI, "en-US") == packaged_file_text(
+            "templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md"
+        )
+
+
 class TestLocalRootRequirements:
     """Configuration failures of ``local_file`` mode."""
 

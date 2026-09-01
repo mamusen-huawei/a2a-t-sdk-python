@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 #: Configuration key carrying the LLM retry attempt limit (Java ``A2ATConfigKeys.Llm.MAX_ATTEMPTS``).
 LLM_MAX_ATTEMPTS_KEY: Final[str] = "A2AT_LLM_MAX_ATTEMPTS"
 
+#: Default prompt resource source type since the 1.1.0 release flip (D10 step 2, Java
+#: ``PromptRuntimeConfig.DEFAULT_SOURCE_TYPE`` = ``classpath``): out-of-the-box reads resolve to the
+#: installed package resources. Users restoring the pre-1.1.0 behavior set
+#: ``A2AT_PROMPT_SOURCE_TYPE=local_file`` (plus ``A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR`` for a custom
+#: root).
+DEFAULT_PROMPT_SOURCE_TYPE: Final[str] = "packaged"
+
 #: Default maximum number of attempts of one retryable LLM step (Java ``LlmConfig.DEFAULT_MAX_ATTEMPTS``).
 DEFAULT_LLM_MAX_ATTEMPTS: Final[int] = 3
 
@@ -74,7 +81,7 @@ class PromptRuntimeConfig:
     """Prompt runtime configuration owned by the config package."""
 
     language: str = "en-US"
-    source_type: str = "local_file"
+    source_type: str = DEFAULT_PROMPT_SOURCE_TYPE
     local_root_dir: str = field(default_factory=_default_prompt_resource_root_dir)
 
     @classmethod
@@ -82,7 +89,7 @@ class PromptRuntimeConfig:
         """Build prompt runtime config from raw environment values."""
         return cls(
             language=values.get("A2AT_LANGUAGE", "en-US") or "en-US",
-            source_type=values.get("A2AT_PROMPT_SOURCE_TYPE", "local_file") or "local_file",
+            source_type=values.get("A2AT_PROMPT_SOURCE_TYPE", DEFAULT_PROMPT_SOURCE_TYPE) or DEFAULT_PROMPT_SOURCE_TYPE,
             local_root_dir=_resolve_prompt_resource_root_dir(
                 values.get("A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR"),
                 base_dir=base_dir,

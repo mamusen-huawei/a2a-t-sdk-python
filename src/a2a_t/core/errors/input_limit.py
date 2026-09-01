@@ -33,11 +33,24 @@ INPUT_TEXT_MAX_CHARS_KEY: Final[str] = "A2AT_INPUT_TEXT_MAX_CHARS"
 
 @dataclass(frozen=True)
 class InputLimitConfig:
-    """Input limit configuration resolved from unified SDK config."""
+    """Input limit configuration resolved from unified SDK config.
+
+    One instance is resolved once from the ``.env`` values and shared by every pipeline stage that
+    gates a free-text input. Length is measured with ``len()`` (Unicode code points); an oversized
+    input fails fast and is never truncated.
+
+    Attributes:
+        max_text_chars: maximum number of characters accepted for one free-text input.
+    """
 
     max_text_chars: int = DEFAULT_MAX_TEXT_CHARS
 
     def __post_init__(self) -> None:
+        """Validate the configured maximum.
+
+        Raises:
+            ValueError: when the maximum is not positive.
+        """
         if self.max_text_chars <= 0:
             raise ValueError(f"max_text_chars must be positive: {self.max_text_chars}")
 
@@ -84,11 +97,25 @@ class InputLimitConfig:
         """Report whether the given free-text input exceeds the limit.
 
         ``None`` is never too long, mirroring the Java null-tolerant static helper.
+
+        Args:
+            text: free-text input to measure; ``None`` is never too long.
+
+        Returns:
+            ``True`` when the input length in characters exceeds ``max_text_chars``.
         """
         return text is not None and len(text) > self.max_text_chars
 
     def violation_message(self, text: str | None) -> str:
-        """Build the violation message for an oversized free-text input."""
+        """Build the violation message for an oversized free-text input.
+
+        Args:
+            text: the oversized input; ``None`` counts as length 0.
+
+        Returns:
+            the human-readable message stating the actual length, the configured maximum and the
+            configuration key that controls it.
+        """
         actual_length = 0 if text is None else len(text)
         return (
             f"input text length {actual_length} exceeds the configured maximum of "
@@ -96,7 +123,15 @@ class InputLimitConfig:
         )
 
     def too_long_facts(self, text: str | None) -> dict[str, str]:
-        """Build the fact values of an input-length violation for the ``input.text_too_long`` code."""
+        """Build the fact values of an input-length violation for the ``input.text_too_long`` code.
+
+        Args:
+            text: the oversized input; ``None`` counts as length 0.
+
+        Returns:
+            the ``actual_length`` and ``max_chars`` fact values keyed by the fact parameter names
+            declared on the code.
+        """
         return {
             "actual_length": str(0 if text is None else len(text)),
             "max_chars": str(self.max_text_chars),

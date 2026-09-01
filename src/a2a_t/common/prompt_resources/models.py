@@ -35,7 +35,14 @@ class PromptTemplate:
 
 @dataclass(slots=True)
 class ScenarioDefinition:
-    """Describe one scenario candidate available to scenario recognition."""
+    """Describe one scenario candidate available to scenario recognition.
+
+    Attributes:
+        scenario_code: scenario identifier, such as ``ran-energy-saving``.
+        scenario_name: display name of the scenario.
+        description: what a request of this scenario sounds like, consumed by recognition.
+        example: one example request of the scenario, consumed by recognition.
+    """
 
     scenario_code: str
     scenario_name: str
@@ -45,7 +52,12 @@ class ScenarioDefinition:
 
 @dataclass(slots=True)
 class PromptMessages:
-    """Bundle the system and user prompts used for one analysis action."""
+    """Bundle the system and user prompts used for one analysis action.
+
+    Attributes:
+        system_prompt: system-role instruction of the LLM call.
+        user_prompt: user-role payload of the LLM call.
+    """
 
     system_prompt: str
     user_prompt: str
@@ -53,7 +65,12 @@ class PromptMessages:
 
 @dataclass(slots=True)
 class SlotRange:
-    """Describe the optional numeric range constraint of a slot."""
+    """Describe the optional numeric range constraint of a slot.
+
+    Attributes:
+        min: inclusive lower bound; ``None`` when unbounded.
+        max: inclusive upper bound; ``None`` when unbounded.
+    """
 
     min: float | int | None
     max: float | int | None
@@ -61,7 +78,20 @@ class SlotRange:
 
 @dataclass(slots=True)
 class SlotDefinition:
-    """Describe one slot expected by a scenario template."""
+    """Describe one slot expected by a scenario template.
+
+    Attributes:
+        name: slot name as used in the template placeholders.
+        required: whether the slot must be filled for the prompt to be valid.
+        description: meaning of the slot, injected into the extraction prompt.
+        example: one example value, injected into the extraction prompt.
+        value_constraint: human-readable constraint of acceptable values.
+        type: JSON-schema type of the slot, such as ``string`` or ``integer``; ``None`` when the
+            schema declares none.
+        allowed_values: closed set of acceptable values; ``None`` when the slot is open.
+        range: numeric range constraint; ``None`` when the slot carries none.
+        pattern: regular expression the value must match; ``None`` when unconstrained.
+    """
 
     name: str
     required: bool
@@ -76,7 +106,12 @@ class SlotDefinition:
 
 @dataclass(slots=True)
 class SlotSchema:
-    """Describe all slots defined for one scenario resource."""
+    """Describe all slots defined for one scenario resource.
+
+    Attributes:
+        scenario_code: scenario the schema was resolved for.
+        slots: slot definitions of the scenario, in schema order.
+    """
 
     scenario_code: str
     slots: list[SlotDefinition]

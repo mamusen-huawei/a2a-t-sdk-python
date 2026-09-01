@@ -140,12 +140,21 @@ class PromptTemplateCatalog:
 
     @property
     def language(self) -> str:
-        """The locale identifier the catalog was created for (used in log messages)."""
+        """The locale identifier the catalog was created for (used in log messages).
+
+        Returns:
+            locale identifier such as ``zh-CN`` or ``en-US``.
+        """
         return self._language
 
     @property
     def source(self) -> str:
-        """The effective origin of every template of the catalog (``packaged`` or ``local``)."""
+        """The effective origin of every template of the catalog (``packaged`` or ``local``).
+
+        Returns:
+            the source marker of the captured snapshot: :data:`~a2a_t.common.prompt_resources.models.SOURCE_PACKAGED`
+            or :data:`~a2a_t.common.prompt_resources.models.SOURCE_LOCAL`.
+        """
         return self._source
 
     def load_all(self) -> list[PromptTemplate]:

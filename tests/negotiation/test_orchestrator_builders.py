@@ -91,8 +91,10 @@ class FakeLogger:
 
 class NegotiationOrchestratorBuilderTest(unittest.TestCase):
     def _config(self) -> A2ATConfig:
+        # Explicit source type: the default flipped to packaged in 1.1.0 (D10 step 2), and these
+        # builder tests only need the bundled packaged tree either way.
         return A2ATConfig(
-            prompt=PromptRuntimeConfig(),
+            prompt=PromptRuntimeConfig(source_type="packaged"),
             prompt_compliance=PromptComplianceConfig(),
         )
 

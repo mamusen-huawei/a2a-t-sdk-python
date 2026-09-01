@@ -8,7 +8,8 @@ resource paths or own resource caches — the Java ``DefaultNegotiationTemplateL
 second, parallel loader next to this one, and that mistake is not ported.
 
 Routing table (selected by ``A2AT_PROMPT_SOURCE_TYPE``, values ``packaged`` | ``local_file``; the
-default stays ``local_file`` until the P9 release flip — D10 two-step):
+default is ``packaged`` since the 1.1.0 release flip — D10 step 2, mirroring the Java
+``classpath`` default; the pre-1.1.0 ``local_file`` default is restored by setting the variable):
 
 - ``templates/**`` — routed (including ``templates/Negotiation-T/**``, locally overridable).
 - ``slots/**`` — routed.
@@ -126,11 +127,19 @@ class PromptResourceAccess(ABC):
 
     @abstractmethod
     def packaged(self) -> bool:
-        """Return whether routed resources are served from the packaged tree."""
+        """Return whether routed resources are served from the packaged tree.
+
+        Returns:
+            ``True`` in packaged mode, ``False`` when a local root serves the routed categories.
+        """
 
     @abstractmethod
     def local_root_dir(self) -> Path | None:
-        """Return the local root serving routed resources, or ``None`` in packaged mode."""
+        """Return the local root serving routed resources, or ``None`` in packaged mode.
+
+        Returns:
+            the configured local root directory, or ``None`` in packaged mode.
+        """
 
     def load_scenarios(self, language: str) -> list[ScenarioDefinition]:
         """Load the scenario catalog of one language (routed).
@@ -293,11 +302,19 @@ class PackagedPromptResourceAccess(PromptResourceAccess):
         self._routed_reader = PackagedResourceReader()
 
     def packaged(self) -> bool:
-        """Return ``True``: routed resources come from the package."""
+        """Return whether routed resources are served from the packaged tree.
+
+        Returns:
+            ``True``: routed resources come from the package.
+        """
         return True
 
     def local_root_dir(self) -> Path | None:
-        """Return ``None``: packaged resources have no local root directory."""
+        """Return the local root serving routed resources, or ``None`` in packaged mode.
+
+        Returns:
+            ``None``: packaged resources have no local root directory.
+        """
         return None
 
 
@@ -322,16 +339,28 @@ class LocalFilePromptResourceAccess(PromptResourceAccess):
         self._routed_reader = self._snapshot
 
     def packaged(self) -> bool:
-        """Return ``False``: routed resources come from the local root."""
+        """Return whether routed resources are served from the packaged tree.
+
+        Returns:
+            ``False``: routed resources come from the local root.
+        """
         return False
 
     def local_root_dir(self) -> Path | None:
-        """Return the local root serving the routed categories."""
+        """Return the local root serving routed resources, or ``None`` in packaged mode.
+
+        Returns:
+            the local root captured as the frozen snapshot at construction.
+        """
         return self._root_dir
 
     @property
     def snapshot(self) -> LocalResourceSnapshot:
-        """The frozen snapshot captured at construction (exposed for diagnostics and tests)."""
+        """The frozen snapshot captured at construction (exposed for diagnostics and tests).
+
+        Returns:
+            the immutable snapshot of the routed categories of the local root.
+        """
         return self._snapshot
 
 

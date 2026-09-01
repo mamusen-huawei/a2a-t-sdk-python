@@ -98,8 +98,10 @@ def test_components_builder_does_not_warn_when_local_root_is_the_packaged_root(
 ) -> None:
     from a2a_t.config.models import PromptRuntimeConfig as _PromptRuntimeConfig
 
+    # The pre-1.1.0 default combination, kept explicit after the D10 step-2 flip: local_file mode
+    # whose resolved default root IS the packaged tree carries no user intent, so no warning fires.
     config = A2ATConfig(
-        prompt=_PromptRuntimeConfig(),
+        prompt=_PromptRuntimeConfig(source_type="local_file"),
         prompt_compliance=PromptComplianceConfig(),
     )
 

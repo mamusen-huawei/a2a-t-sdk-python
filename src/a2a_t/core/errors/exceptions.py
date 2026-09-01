@@ -57,6 +57,14 @@ class A2ATError(Exception):
         code: ErrorCatalog = ErrorCatalog.INFRA_INTERNAL_ERROR,
         cause: BaseException | None = None,
     ) -> None:
+        """Create one root failure with its message, code and optional cause.
+
+        Args:
+            message: human-readable failure message; infrastructure failures pass a plain message,
+                business failures pass one rendered from the code's template.
+            code: catalog code of the failure; defaults to ``infra.internal_error``.
+            cause: underlying exception to chain as ``__cause__``, when any.
+        """
         super().__init__(message)
         self.code = code
         if cause is not None:
@@ -65,7 +73,11 @@ class A2ATError(Exception):
 
     @property
     def code_str(self) -> str:
-        """The layered error code of this failure as a plain string (D4: the external carrier)."""
+        """The layered error code of this failure as a plain string (D4: the external carrier).
+
+        Returns:
+            the code string, for example ``negotiation.invalid_input``.
+        """
         return self.code.value
 
 
@@ -91,6 +103,17 @@ class A2ATBusinessError(A2ATError):
         message: str | None = None,
         cause: BaseException | None = None,
     ) -> None:
+        """Create one business failure, rendering its message from the code's template.
+
+        Args:
+            code: catalog code of the failure.
+            facts: fact values keyed by fact parameter name; non-string values are ``str()``-ized.
+            language: message language for the rendered message; ``None`` uses the default
+                language.
+            message: pre-rendered message; when ``None``, the message is rendered from the code's
+                template and the given facts.
+            cause: underlying exception to chain as ``__cause__``, when any.
+        """
         self.facts: dict[str, str] = _normalize_facts(facts)
         if message is None:
             message = render(code, self.facts, language)
@@ -105,6 +128,13 @@ class SlotValidationError:
     parameter-extraction and content-validation failures so callers can inspect which slot failed,
     under which error code, and why, without parsing exception messages. The ``message`` is rendered
     by the SDK from the code's template; ``facts`` carries the structured values that produced it.
+
+    Attributes:
+        slot_name: name of the slot the error belongs to.
+        code: layered error code of the error; a plain string ready for JSON wire and logs.
+        message: human-readable message rendered from the code's bilingual template.
+        facts: structured fact values that produced the message, keyed by fact parameter name;
+            ``None`` when the failure carries no facts.
     """
 
     slot_name: str
@@ -113,6 +143,7 @@ class SlotValidationError:
     facts: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
+        """Normalize a catalog member passed as the code to its plain string form (D4)."""
         # D4: the code is the external string carrier, so a catalog member passed in is normalized
         # to its plain string form instead of serializing as "ErrorCatalog.X".
         if isinstance(self.code, ErrorCatalog):
@@ -136,6 +167,18 @@ class PromptGenerationError(A2ATBusinessError):
         cause: BaseException | None = None,
         failed_parameters: Iterable[SlotValidationError] | None = None,
     ) -> None:
+        """Create one prompt generation failure.
+
+        Args:
+            code: catalog code of the failure.
+            facts: fact values keyed by fact parameter name; non-string values are ``str()``-ized.
+            language: message language for the rendered message; ``None`` uses the default
+                language.
+            message: pre-rendered message; when ``None``, the message is rendered from the code's
+                template and the given facts.
+            cause: underlying exception to chain as ``__cause__``, when any.
+            failed_parameters: per-slot validation errors of the failed parameters.
+        """
         super().__init__(code, facts, language=language, message=message, cause=cause)
         self.failed_parameters: list[SlotValidationError] = list(failed_parameters or ())
 
@@ -160,6 +203,20 @@ class ContentValidationError(A2ATBusinessError):
         errors: Iterable[SlotValidationError] | None = None,
         params: Mapping[str, object] | None = None,
     ) -> None:
+        """Create one content validation failure.
+
+        Args:
+            code: catalog code of the failure.
+            facts: fact values keyed by fact parameter name; non-string values are ``str()``-ized.
+            language: message language for the rendered message; ``None`` uses the default
+                language.
+            message: pre-rendered message; when ``None``, the message is rendered from the code's
+                template and the given facts.
+            cause: underlying exception to chain as ``__cause__``, when any.
+            errors: structured per-slot validation errors.
+            params: partial extraction result, when validation ran on an extraction; may carry
+                ``None`` values for the slots the semantic validator could not extract.
+        """
         super().__init__(code, facts, language=language, message=message, cause=cause)
         self.errors: list[SlotValidationError] = list(errors or ())
         self.params: dict[str, object] = dict(params) if params else {}
@@ -183,6 +240,18 @@ class A2ATParamExtractionError(A2ATBusinessError):
         cause: BaseException | None = None,
         errors: Iterable[SlotValidationError] | None = None,
     ) -> None:
+        """Create one parameter extraction failure.
+
+        Args:
+            code: catalog code of the failure; defaults to ``slot.not_provided`` (the Java default).
+            facts: fact values keyed by fact parameter name; non-string values are ``str()``-ized.
+            language: message language for the rendered message; ``None`` uses the default
+                language.
+            message: pre-rendered message; when ``None``, the message is rendered from the code's
+                template and the given facts.
+            cause: underlying exception to chain as ``__cause__``, when any.
+            errors: structured per-slot validation errors.
+        """
         super().__init__(code, facts, language=language, message=message, cause=cause)
         self.errors: list[SlotValidationError] = list(errors or ())
 
@@ -217,6 +286,20 @@ class NegotiationParamExtractionError(A2ATBusinessError):
         cause: BaseException | None = None,
         errors: Iterable[SlotValidationError] | None = None,
     ) -> None:
+        """Create one negotiation parameter extraction failure.
+
+        Args:
+            code: catalog code of the failure.
+            facts: fact values keyed by fact parameter name; non-string values are ``str()``-ized.
+            language: message language for the rendered message; ``None`` uses the default
+                language.
+            message: pre-rendered message; when ``None``, the message is rendered from the code's
+                template and the given facts. A message rendered upstream (for example by the
+                shared validation pipeline) survives the wrap unchanged, so the facts stay
+                available to callers without re-rendering.
+            cause: underlying exception to chain as ``__cause__``, when any.
+            errors: structured per-slot validation errors.
+        """
         super().__init__(code, facts, language=language, message=message, cause=cause)
         self.errors: list[SlotValidationError] = list(errors or ())
 
@@ -236,6 +319,14 @@ class ResourceNotFoundError(A2ATError):
         *,
         code: ErrorCatalog = ErrorCatalog.INFRA_INTERNAL_ERROR,
     ) -> None:
+        """Create one resource resolution failure.
+
+        Args:
+            message: human-readable failure message.
+            resource_path: path of the resource that could not be resolved, root-relative.
+            code: catalog code of the failure; defaults to ``infra.internal_error`` — callers
+                translate it to a more specific catalog code at their boundary.
+        """
         super().__init__(message, code=code)
         self.resource_path = resource_path
 
@@ -248,6 +339,14 @@ class ConfigFileNotFoundError(A2ATError):
     """
 
     def __init__(self, path: Path) -> None:
+        """Create one missing-config-file failure for the given path.
+
+        The message is rendered from the ``infra.config_invalid`` template with the missing path as
+        the ``key`` fact, mirroring the Java constructor.
+
+        Args:
+            path: the configuration file path that does not exist.
+        """
         facts: dict[str, str] = {"key": str(path), "reason": "config file does not exist"}
         super().__init__(render(ErrorCatalog.INFRA_CONFIG_INVALID, facts), code=ErrorCatalog.INFRA_CONFIG_INVALID)
         self.path = path

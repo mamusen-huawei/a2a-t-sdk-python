@@ -118,15 +118,26 @@ class TemplateUri:
 
     @property
     def segments(self) -> tuple[str, ...]:
-        """Full URI segment sequence: extension, path segments, version."""
+        """Full URI segment sequence: extension, path segments, version.
+
+        Returns:
+            every URI segment in order, such as
+            ``("Task-T", "network-layer", "ran-energy-saving", "v1")``.
+        """
         return (self.extension_name, *self.path_segments, self.template_version)
 
     @property
     def uri(self) -> str:
-        """Raw template URI, such as ``Negotiation-T/information-negotiation/propose/v1``."""
+        """Raw template URI, such as ``Negotiation-T/information-negotiation/propose/v1``.
+
+        Returns:
+            the canonical string spelling of this URI — the form the public facades accept and
+            the bridge between the typed and the string spelling (D16).
+        """
         return "/".join(self.segments)
 
     def __str__(self) -> str:
+        """Return the raw URI string; identical to :attr:`uri`."""
         return self.uri
 
 

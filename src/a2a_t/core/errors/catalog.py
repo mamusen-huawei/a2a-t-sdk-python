@@ -26,9 +26,23 @@ class Category(Enum):
 
 
 class ErrorCatalog(str, Enum):
-    """Closed set of the 42 layered error codes, each with its category and fact parameters."""
+    """Closed set of the 42 layered error codes, each with its category and fact parameters.
+
+    Every member is its code string (``str``-derived, so a member serializes and compares as its
+    plain string form) and additionally carries the two elements of the code's contract:
+
+    Attributes:
+        category: :class:`Category` deciding which exception family carries the code — business
+            failures travel on :class:`~a2a_t.core.errors.exceptions.A2ATBusinessError` subclasses,
+            infrastructure failures on plain
+            :class:`~a2a_t.core.errors.exceptions.A2ATError`.
+        fact_parameters: names of the fact parameters the code's message template renders, for
+            example ``("template_uri", "language")``; callers pass the values keyed by these names
+            when raising, and the message renderer fills the ``{name}`` placeholders with them.
+    """
 
     def __new__(cls, code: str, category: Category, fact_parameters: tuple[str, ...]) -> Self:
+        """Create one catalog member from its code string, category and fact parameter names."""
         member = str.__new__(cls, code)
         member._value_ = code
         member.category = category
@@ -36,7 +50,14 @@ class ErrorCatalog(str, Enum):
         return member
 
     def has_fact_parameter(self, name: str | None) -> bool:
-        """Return whether one name is a declared fact parameter of the code."""
+        """Return whether one name is a declared fact parameter of the code.
+
+        Args:
+            name: candidate fact parameter name; may be ``None``.
+
+        Returns:
+            ``True`` when the name is one of this code's declared fact parameters.
+        """
         return name is not None and name in self.fact_parameters
 
     # domain: template (template resources)

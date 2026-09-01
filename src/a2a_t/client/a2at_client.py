@@ -73,7 +73,33 @@ def _parse_template_uri(template_uri: str | TemplateUri | None) -> TemplateUri:
 
 
 class A2ATClient:
-    """Expose the client-side prompt generation and negotiation APIs."""
+    """Client-side facade of the A2A-T SDK: prompt generation, negotiation, and template queries.
+
+    The facade is the single client entry point of the SDK and exposes four groups of operations:
+
+    - **Scenario-recognition prompt generation** — :meth:`generate_task_prompt` normalizes the
+      caller input, recognizes the scenario, extracts the slots with one LLM call and renders the
+      task prompt. Failures of this LLM-driven pipeline are reported in the returned result object
+      instead of being raised (the result/exception dual track of the port).
+    - **Template-directed prompt generation** — the six ``generate_{task,auth,notification}_prompt``
+      methods, each bypassing scenario recognition for one template addressed by its URI, from free
+      text or from structured input with a data schema.
+    - **Negotiation content** — the twelve Negotiation-T methods: eight message-generation methods
+      (``generate_negotiation_{propose,accept,reject,abort}_prompt_from_{data,text}``) and four
+      message-validation methods (``validate_{...}_prompt_and_data_filling``).
+    - **Template queries** — :meth:`get_prompts` and :meth:`get_prompt`, the extension-agnostic
+      catalog queries that never throw.
+
+    Every method that addresses a template takes the template URI in its raw string spelling and
+    parses it fail-fast; use the constants of :mod:`a2a_t.core.standard_templates` instead of
+    hand-written URI strings. Business failures are raised as catalog-coded exceptions of the
+    :mod:`a2a_t.core.errors.exceptions` tree (catch :class:`~a2a_t.core.errors.exceptions.A2ATError`
+    and branch on ``code_str``); programming errors stay ``TypeError`` / ``ValueError``.
+
+    The three legacy ``start/receive/continue_negotiation`` methods of the retired state-machine
+    negotiation demo are kept for one release with a :class:`DeprecationWarning` and will be
+    removed in the next release.
+    """
 
     def __init__(
         self,
@@ -81,6 +107,25 @@ class A2ATClient:
         env_path: Path | None = None,
         logger: Any | None = None,
     ) -> None:
+        """Create one client facade from a ``.env`` file.
+
+        The configuration, the LLM client and both orchestrators are resolved eagerly so that a
+        misconfiguration surfaces at construction instead of on the first call. The negotiation
+        content service and the template query service are assembled lazily on first use: both
+        capture resource snapshots at that point, so constructing the facade stays side-effect free
+        for the prompt-only flows.
+
+        Args:
+            env_path: path of the ``.env`` file carrying the SDK configuration; ``None`` uses the
+                packaged ``package_data/.env`` default. The resolved file must exist — copy
+                ``env.example`` to ``.env`` first (every key is optional, an empty file works).
+            logger: optional logger injected into the LLM client and the orchestrators; ``None``
+                uses each component's module-level logger.
+
+        Raises:
+            ConfigFileNotFoundError: when the resolved ``.env`` path does not exist.
+            ConfigError: when a configuration value is invalid.
+        """
         resolved_env_path = env_path or _default_env_path()
         self._config = A2ATConfig.load(resolved_env_path)
         llm_config = LLMConfigLoader.load(resolved_env_path)
@@ -101,7 +146,28 @@ class A2ATClient:
         self._template_query_service: TemplateQueryService | None = None
 
     def generate_task_prompt(self, user_input: str | dict[str, object]) -> PromptGenerationResult:
-        """Generate a processed task prompt from user input."""
+        """Generate a processed task prompt from user input through scenario recognition.
+
+        The pipeline normalizes the input, recognizes the scenario against the bundled scenario
+        catalog, extracts the scenario slots with one LLM call, validates the extracted slots
+        against the scenario slot schema and renders the task prompt from the scenario template.
+
+        Failures of this LLM-driven pipeline are reported in the returned result object instead of
+        being raised: an LLM step failing is an expected outcome, not an exceptional one.
+
+        Args:
+            user_input: natural-language task request, or a structured mapping of already-known
+                input fields.
+
+        Returns:
+            the generation result: on success it carries the rendered prompt text, on failure the
+                structured failure (catalog code, rendered message, stage) instead — an oversized
+                input, a failed LLM step and an unmatchable scenario all report through the result.
+
+        Raises:
+            TypeError: when the user input is neither a string nor a mapping.
+            ValueError: when the user input is a blank string or an empty mapping.
+        """
         return self._prompt_generation_orchestrator.generate(user_input)
 
     # ------------------------------------------------------------------
@@ -298,8 +364,16 @@ class A2ATClient:
     def start_negotiation(self, input: StartNegotiationInput) -> dict[str, object]:
         """Start a client-side negotiation round.
 
-        Deprecated (D1): the state-machine negotiation demo is retired; this method forwards to the
-        legacy orchestrator unchanged and will be removed in the next release.
+        Deprecated (D1): the state-machine negotiation demo is retired; this method emits a
+        :class:`DeprecationWarning`, forwards to the legacy orchestrator unchanged, and will be
+        removed in the next release. Use the negotiation content API instead —
+        :meth:`generate_negotiation_propose_prompt_from_data` and its siblings.
+
+        Args:
+            input: legacy negotiation start input.
+
+        Returns:
+            the legacy orchestrator's round result as a plain mapping.
         """
         warnings.warn(_deprecation_message("start_negotiation"), DeprecationWarning, stacklevel=2)
         return self._negotiation_orchestrator.start_negotiation(input)
@@ -308,7 +382,15 @@ class A2ATClient:
         """Process a negotiation message received from the remote peer.
 
         Deprecated (D1): the state-machine negotiation demo is retired; this method forwards to the
-        legacy orchestrator unchanged and will be removed in the next release.
+        legacy orchestrator unchanged and will be removed in the next release. Use the negotiation
+        content API instead — :meth:`validate_propose_prompt_and_data_filling` and its siblings.
+
+        Args:
+            message: received negotiation message text.
+            context: legacy negotiation context mapping.
+
+        Returns:
+            the legacy orchestrator's round result as a plain mapping.
         """
         warnings.warn(_deprecation_message("receive_negotiation"), DeprecationWarning, stacklevel=2)
         return self._negotiation_orchestrator.receive_negotiation(message, context)
@@ -317,7 +399,15 @@ class A2ATClient:
         """Continue an existing negotiation with a local response.
 
         Deprecated (D1): the state-machine negotiation demo is retired; this method forwards to the
-        legacy orchestrator unchanged and will be removed in the next release.
+        legacy orchestrator unchanged and will be removed in the next release. Use the negotiation
+        content API instead — :meth:`generate_negotiation_accept_prompt_from_data` and its
+        siblings.
+
+        Args:
+            input: legacy negotiation continuation input.
+
+        Returns:
+            the legacy orchestrator's round result as a plain mapping.
         """
         warnings.warn(_deprecation_message("continue_negotiation"), DeprecationWarning, stacklevel=2)
         return self._negotiation_orchestrator.continue_negotiation(input)

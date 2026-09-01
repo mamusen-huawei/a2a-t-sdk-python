@@ -78,7 +78,35 @@ def _parse_template_uri(template_uri: str | TemplateUri | None) -> TemplateUri:
 
 
 class A2ATServer:
-    """Expose the server-side prompt compliance and negotiation APIs."""
+    """Server-side facade of the A2A-T SDK: prompt compliance, validation, negotiation, and queries.
+
+    The facade is the single server entry point of the SDK and exposes four groups of operations:
+
+    - **Task prompt compliance** — :meth:`check_task_prompt` validates one processed task prompt
+      against the scenario, template and slot constraints and reports the outcome in the returned
+      result object (the compliance checks are LLM-assisted, so a rejection is an expected outcome
+      reported through the result rather than an exception).
+    - **Content validation and parameter filling** — the three
+      ``validate_{task,notification,auth}_prompt_and_data_filling`` methods, one per non-negotiation
+      extension, each running the shared validation pipeline behind an input-length gate and
+      extracting the parameters per a caller-provided JSON schema.
+    - **Negotiation content** — the twelve Negotiation-T methods: eight message-generation methods
+      (``generate_negotiation_{propose,accept,reject,abort}_prompt_from_{data,text}``) and four
+      message-validation methods (``validate_{...}_prompt_and_data_filling``), identical to the
+      client surface because both peers of a negotiation generate and validate messages.
+    - **Template queries** — :meth:`get_prompts` and :meth:`get_prompt`, the extension-agnostic
+      catalog queries that never throw.
+
+    Every method that addresses a template takes the template URI in its raw string spelling and
+    parses it fail-fast; use the constants of :mod:`a2a_t.core.standard_templates` instead of
+    hand-written URI strings. Business failures are raised as catalog-coded exceptions of the
+    :mod:`a2a_t.core.errors.exceptions` tree (catch :class:`~a2a_t.core.errors.exceptions.A2ATError`
+    and branch on ``code_str``); programming errors stay ``TypeError`` / ``ValueError``.
+
+    The three legacy ``start/receive/continue_negotiation`` methods of the retired state-machine
+    negotiation demo are kept for one release with a :class:`DeprecationWarning` and will be
+    removed in the next release.
+    """
 
     def __init__(
         self,
@@ -86,6 +114,25 @@ class A2ATServer:
         env_path: Path | None = None,
         logger: Any | None = None,
     ) -> None:
+        """Create one server facade from a ``.env`` file.
+
+        The configuration, the LLM client and both orchestrators are resolved eagerly so that a
+        misconfiguration surfaces at construction instead of on the first call. The negotiation
+        content service, the template query service and the extension content validators are
+        assembled lazily on first use: each captures resource snapshots at that point, so
+        constructing the facade stays side-effect free for the compliance-only flows.
+
+        Args:
+            env_path: path of the ``.env`` file carrying the SDK configuration; ``None`` uses the
+                packaged ``package_data/.env`` default. The resolved file must exist — copy
+                ``env.example`` to ``.env`` first (every key is optional, an empty file works).
+            logger: optional logger injected into the LLM client and the orchestrators; ``None``
+                uses each component's module-level logger.
+
+        Raises:
+            ConfigFileNotFoundError: when the resolved ``.env`` path does not exist.
+            ConfigError: when a configuration value is invalid.
+        """
         resolved_env_path = env_path or _default_env_path()
         self._config = A2ATConfig.load(resolved_env_path)
         llm_config = LLMConfigLoader.load(resolved_env_path)
@@ -112,7 +159,23 @@ class A2ATServer:
         self._content_validators: dict[str, InputLimitedContentValidator] | None = None
 
     def check_task_prompt(self, *, processed_prompt_text: str) -> PromptComplianceResult:
-        """Validate a processed task prompt and return the compliance result."""
+        """Validate one processed task prompt and return the compliance result.
+
+        The pipeline checks the input length, resolves the scenario of the prompt against the
+        bundled scenario catalog, and validates the prompt content against the scenario, template
+        and slot constraints (an LLM-assisted semantic step). Failures are reported in the returned
+        result object instead of being raised: a prompt being rejected is an expected outcome of a
+        compliance check, not an exceptional one.
+
+        Args:
+            processed_prompt_text: the processed task prompt text submitted by the client.
+
+        Returns:
+            the compliance result: on success it carries no failure, on rejection the structured
+                failure (catalog code, rendered message, compliance stage) instead — an oversized
+                input, an unmatchable scenario, a missing slot and a failed LLM step all report
+                through the result.
+        """
         result = self._prompt_compliance_orchestrator.check(
             processed_prompt_text=processed_prompt_text,
         )
@@ -225,8 +288,16 @@ class A2ATServer:
     def start_negotiation(self, input: StartNegotiationInput) -> dict[str, object]:
         """Start a server-side negotiation round.
 
-        Deprecated (D1): the state-machine negotiation demo is retired; this method forwards to the
-        legacy orchestrator unchanged and will be removed in the next release.
+        Deprecated (D1): the state-machine negotiation demo is retired; this method emits a
+        :class:`DeprecationWarning`, forwards to the legacy orchestrator unchanged, and will be
+        removed in the next release. Use the negotiation content API instead —
+        :meth:`generate_negotiation_propose_prompt_from_data` and its siblings.
+
+        Args:
+            input: legacy negotiation start input.
+
+        Returns:
+            the legacy orchestrator's round result as a plain mapping.
         """
         warnings.warn(_deprecation_message("start_negotiation"), DeprecationWarning, stacklevel=2)
         return self._negotiation_orchestrator.start_negotiation(input)
@@ -234,8 +305,17 @@ class A2ATServer:
     def receive_negotiation(self, message: str, context: dict[str, object]) -> dict[str, object]:
         """Process a negotiation message received from the remote peer.
 
-        Deprecated (D1): the state-machine negotiation demo is retired; this method forwards to the
-        legacy orchestrator unchanged and will be removed in the next release.
+        Deprecated (D1): the state-machine negotiation demo is retired; this method emits a
+        :class:`DeprecationWarning`, forwards to the legacy orchestrator unchanged, and will be
+        removed in the next release. Use the negotiation content API instead —
+        :meth:`validate_propose_prompt_and_data_filling` and its siblings.
+
+        Args:
+            message: received negotiation message text.
+            context: legacy negotiation context mapping.
+
+        Returns:
+            the legacy orchestrator's round result as a plain mapping.
         """
         warnings.warn(_deprecation_message("receive_negotiation"), DeprecationWarning, stacklevel=2)
         return self._negotiation_orchestrator.receive_negotiation(message, context)
@@ -243,8 +323,16 @@ class A2ATServer:
     def continue_negotiation(self, input: ContinueNegotiationInput) -> dict[str, object]:
         """Continue an existing negotiation with a local response.
 
-        Deprecated (D1): the state-machine negotiation demo is retired; this method forwards to the
-        legacy orchestrator unchanged and will be removed in the next release.
+        Deprecated (D1): the state-machine negotiation demo is retired; this method emits a
+        :class:`DeprecationWarning`, forwards to the legacy orchestrator unchanged, and will be
+        removed in the next release. Use the negotiation content API instead —
+        :meth:`generate_negotiation_accept_prompt_from_data` and its siblings.
+
+        Args:
+            input: legacy negotiation continuation input.
+
+        Returns:
+            the legacy orchestrator's round result as a plain mapping.
         """
         warnings.warn(_deprecation_message("continue_negotiation"), DeprecationWarning, stacklevel=2)
         return self._negotiation_orchestrator.continue_negotiation(input)

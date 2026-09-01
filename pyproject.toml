@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "a2a-t-sdk"
-version = "1.0.0"
+version = "1.1.0"
 description = "Python A2A SDK for Telecom Scenarios"
 readme = "README.md"
 license = "Apache-2.0"
@@ -53,6 +53,9 @@ source-exclude = [".gitignore"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Kept deliberately: the a2a-t-sample async tests run under this root config in CI
+# (pytest-asyncio comes in with a2a-t-sample/requirements.txt); the local SDK-only
+# venv just warns about the unknown option.
 asyncio_mode = "auto"
 addopts = "-p no:cacheprovider"
 markers = [

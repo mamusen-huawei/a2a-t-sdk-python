@@ -224,10 +224,30 @@ class ErrorMessages:
         facts: Mapping[str, object] | None = None,
         language: str | None = None,
     ) -> str:
-        """Render the message of one error code in one language (see :func:`render`)."""
+        """Render the message of one error code in one language.
+
+        Args:
+            code: layered error code or catalog entry, for example ``content.param_missing``.
+            facts: fact values keyed by fact parameter name; non-string values are ``str()``-ized
+                and keys without a value keep their placeholder literal.
+            language: message language, for example ``zh-CN``; ``None`` or blank falls back to
+                ``en-US``.
+
+        Returns:
+            the rendered message; the bare code when no template exists in either language.
+        """
         return render(code, facts, language)
 
     @staticmethod
     def template(code: ErrorCatalog | str, language: str | None = None) -> str | None:
-        """Return the message template of one error code (see :func:`template`)."""
+        """Return the message template of one error code in one language, without rendering it.
+
+        Args:
+            code: layered error code or catalog entry.
+            language: message language; ``None`` or blank falls back to ``en-US``.
+
+        Returns:
+            the template text, or ``None`` when no template exists in the requested language or
+            ``en-US``.
+        """
         return template(code, language)

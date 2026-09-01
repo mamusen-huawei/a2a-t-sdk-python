@@ -118,12 +118,23 @@ class Vocabulary:
             ) from None
 
     def canonical_keys(self) -> KeysView[str]:
-        """Return all canonical keys exposed by this vocabulary — identical for every language."""
+        """Return all canonical keys exposed by this vocabulary — identical for every language.
+
+        Returns:
+            the canonical key set, in the pinned order of :data:`CANONICAL_KEYS`.
+        """
         return self.entries.keys()
 
 
 def vocabulary_key(language: str) -> PromptResourceKey:
-    """Return the resource key of one language's negotiation vocabulary."""
+    """Return the resource key of one language's negotiation vocabulary.
+
+    Args:
+        language: locale identifier such as ``zh-CN`` or ``en-US``.
+
+    Returns:
+        the resource key addressing ``negotiation-vocabulary/<language>/vocabulary.json``.
+    """
     return PromptResourceKey(_VOCABULARY_DIRECTORY, (), language, _VOCABULARY_FILE_NAME)
 
 

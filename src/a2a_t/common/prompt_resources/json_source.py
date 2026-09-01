@@ -56,18 +56,38 @@ class ResourceReader(Protocol):
     def read_text(self, key: PromptResourceKey) -> str:
         """Read one UTF-8 text resource.
 
+        Args:
+            key: resource key identifying the file under ``prompt_resources/``.
+
+        Returns:
+            the text payload of the resource.
+
         Raises:
             ResourceNotFoundError: when the resource does not exist for this source.
         """
         ...
 
     def category_types(self, category: str) -> tuple[str, ...]:
-        """Return the first-level directory names available under one routed category."""
+        """Return the first-level directory names available under one routed category.
+
+        Args:
+            category: category directory under ``prompt_resources/``, such as ``templates``.
+
+        Returns:
+            the sorted directory names; empty when the category does not exist.
+        """
         ...
 
     def category_files(self, category: str, file_name: str) -> dict[str, str]:
-        """Return every file of one routed category matching a file name (category-relative path
-        to text), walking the whole category subtree."""
+        """Return every file of one routed category matching a file name, walking the whole subtree.
+
+        Args:
+            category: category directory under ``prompt_resources/``, such as ``templates``.
+            file_name: file name of the payloads to collect, such as ``template.md``.
+
+        Returns:
+            a mapping of category-relative path (forward slashes) to the UTF-8 text payload.
+        """
         ...
 
 
@@ -169,12 +189,26 @@ def read_failed(
 
 
 def scenario_catalog_key(language: str) -> PromptResourceKey:
-    """Return the resource key of one language's scenario catalog."""
+    """Return the resource key of one language's scenario catalog.
+
+    Args:
+        language: locale identifier such as ``zh-CN`` or ``en-US``.
+
+    Returns:
+        the resource key addressing ``scenarios/<language>/scenarios.json``.
+    """
     return PromptResourceKey.scenario(language, "scenarios.json")
 
 
 def error_catalog_key(language: str) -> PromptResourceKey:
-    """Return the resource key of one language's error message catalog."""
+    """Return the resource key of one language's error message catalog.
+
+    Args:
+        language: locale identifier such as ``zh-CN`` or ``en-US``.
+
+    Returns:
+        the resource key addressing ``errors/<language>/errors.json``.
+    """
     return PromptResourceKey("errors", (), language, "errors.json")
 
 

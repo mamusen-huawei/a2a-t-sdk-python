@@ -106,7 +106,11 @@ class LocalResourceSnapshot:
 
     @property
     def root_dir(self) -> Path:
-        """The local prompt resource root this snapshot was captured from."""
+        """The local prompt resource root this snapshot was captured from.
+
+        Returns:
+            the root directory the content map was read from.
+        """
         return self._root_dir
 
     def contains(self, root_relative_path: str) -> bool:
@@ -115,6 +119,9 @@ class LocalResourceSnapshot:
         Args:
             root_relative_path: path relative to the local root, such as
                 ``templates/Task-T/.../template.md``.
+
+        Returns:
+            ``True`` when the path was present at capture time.
         """
         return require_root_relative_path(root_relative_path) in self._content
 
@@ -142,6 +149,9 @@ class LocalResourceSnapshot:
 
         Args:
             category: category prefix, such as ``templates`` or ``slots``.
+
+        Returns:
+            the sorted directory names captured at construction time; empty when none was captured.
         """
         prefix = category + _SEPARATOR
         types: set[str] = set()

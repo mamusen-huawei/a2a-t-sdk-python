@@ -167,15 +167,42 @@ class PackagedResourceReader:
     """
 
     def read_text(self, key: PromptResourceKey) -> str:
-        """Read one UTF-8 text resource from the package (cached; missing is never cached)."""
+        """Read one UTF-8 text resource from the package (cached; missing is never cached).
+
+        Args:
+            key: resource key identifying the file under ``prompt_resources/``.
+
+        Returns:
+            the text payload of the resource.
+
+        Raises:
+            ResourceNotFoundError: when the resource does not exist in the package.
+            OSError: when an existing resource cannot be read.
+        """
         return load_text(key)
 
     def category_types(self, category: str) -> tuple[str, ...]:
-        """Return the first-level directory names available under one packaged category."""
+        """Return the first-level directory names available under one packaged category.
+
+        Args:
+            category: category directory under ``prompt_resources/``, such as ``templates``.
+
+        Returns:
+            the sorted directory names; empty when the category exists in no packaged root.
+        """
         return list_category_directories(category)
 
     def category_files(self, category: str, file_name: str) -> dict[str, str]:
-        """Return every file of one packaged category matching a file name (reader seam)."""
+        """Return every file of one packaged category matching a file name (reader seam).
+
+        Args:
+            category: category directory under ``prompt_resources/``, such as ``templates``.
+            file_name: file name of the payloads to collect, such as ``template.md``.
+
+        Returns:
+            a mapping of category-relative path (forward slashes) to the UTF-8 text payload; empty
+            when the category exists in no packaged root.
+        """
         return load_category_files(category, file_name)
 
 

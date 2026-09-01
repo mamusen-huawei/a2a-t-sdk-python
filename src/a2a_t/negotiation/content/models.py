@@ -70,6 +70,10 @@ class NegotiationEndingContent(NegotiationContent):
 
     Carries the shared ``conclusion`` component (the Java interface's ``conclusion()`` accessor):
     every terminal content is constructed with its conclusion first, followed by its own fields.
+
+    Attributes:
+        conclusion: terminal outcome of the negotiation; ``ACCEPT`` and ``REJECT`` are renderable,
+            ``ABORT`` is rejected by the typed generators (D2).
     """
 
     conclusion: NegotiationConclusion
