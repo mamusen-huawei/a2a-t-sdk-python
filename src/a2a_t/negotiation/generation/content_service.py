@@ -425,11 +425,12 @@ def _template_uri_of(template_uri: str | TemplateUri | None) -> TemplateUri:
     :class:`~a2a_t.core.template_uri.TemplateUri` is the accepted dual internal spelling.
 
     Raises:
-        TypeError: when the template URI is ``None``.
+        TypeError: when the template URI is ``None`` — carrying the Java-parity message of
+            ``NegotiationReference.fromTemplateUri``, the seam that rejects the null URI in Java.
         ValueError: when the raw template URI is unparseable.
     """
     if template_uri is None:
-        raise TypeError("templateUri")
+        raise TypeError("Template URI must not be null.")
     if isinstance(template_uri, TemplateUri):
         return template_uri
     parsed = TemplateUri.parse(template_uri)

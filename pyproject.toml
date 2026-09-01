@@ -55,6 +55,11 @@ source-exclude = [".gitignore"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-p no:cacheprovider"
+markers = [
+    # Live-LLM corpus family (D24): opt-in through the A2AT_TEST_LLM_* environment variables;
+    # absent variables skip the family. CI excludes it with -m 'not live'.
+    "live: live-LLM corpus tests against a real A2AT_TEST_LLM_* endpoint (skips when unconfigured)",
+]
 
 [tool.ruff]
 line-length = 120
@@ -66,6 +71,10 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["E402", "E501"]
+# The corpus loader's raw-record dataclasses mirror the camelCase corpus JSON keys verbatim
+# (D21 strict binding: the field name IS the corpus key), and CorpusLoadException keeps the
+# Java exception name for cross-repo parity.
+"tests/corpus/loader.py" = ["N815", "N818"]
 
 [tool.mypy]
 python_version = "3.12"

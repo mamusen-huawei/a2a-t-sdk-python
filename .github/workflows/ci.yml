@@ -43,7 +43,9 @@ jobs:
           echo "$src" > "$venv_site/samples.pth"
 
       - name: Run SDK tests
-        run: uv run pytest tests/ -v --tb=short
+        # The live-LLM corpus family is opt-in through A2AT_TEST_LLM_* secrets this job does not
+        # provide; -m 'not live' deselects it so CI stays offline-deterministic (D24).
+        run: uv run pytest tests/ -v --tb=short -m 'not live'
 
       - name: Run samples tests
         run: uv run pytest a2a-t-sample/subscribe-incident/test/ a2a-t-sample/negotiation/test/ -v --tb=short

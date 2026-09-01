@@ -177,7 +177,7 @@ def test_an_unparseable_template_uri_is_rejected_fail_fast() -> None:
 def test_a_null_template_uri_is_a_programming_error() -> None:
     wired, _ = service()
 
-    with pytest.raises(TypeError, match="templateUri"):
+    with pytest.raises(TypeError, match="Template URI must not be null."):
         wired.generate_propose_from_data(propose_data(), None)
 
 

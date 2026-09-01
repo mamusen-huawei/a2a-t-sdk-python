@@ -24,6 +24,9 @@ venv/
 .env
 a2a-t-sample/.env
 
+# Live corpus transcripts (D24: .live-corpus/<run>/, never committed)
+.live-corpus/
+
 # Claude 本地配置
 .claude/
 .worktrees/
