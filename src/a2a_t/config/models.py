@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+import logging
+import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Final
 
 from a2a_t.config.source import DotEnvConfigSource
 from a2a_t.core.errors.input_limit import InputLimitConfig
+
+logger = logging.getLogger(__name__)
+
+#: Configuration key carrying the LLM retry attempt limit (Java ``A2ATConfigKeys.Llm.MAX_ATTEMPTS``).
+LLM_MAX_ATTEMPTS_KEY: Final[str] = "A2AT_LLM_MAX_ATTEMPTS"
+
+#: Default maximum number of attempts of one retryable LLM step (Java ``LlmConfig.DEFAULT_MAX_ATTEMPTS``).
+DEFAULT_LLM_MAX_ATTEMPTS: Final[int] = 3
+
+#: Inclusive lower bound of the attempt limit; smaller configured values are clamped up to it.
+LLM_MAX_ATTEMPTS_LOWER_BOUND: Final[int] = 1
+
+#: Inclusive upper bound of the attempt limit; larger configured values are clamped down to it.
+LLM_MAX_ATTEMPTS_UPPER_BOUND: Final[int] = 10
 
 
 def _parse_bool(raw_value: str | None, default: bool) -> bool:
@@ -74,6 +91,83 @@ class PromptRuntimeConfig:
 
 
 @dataclass(slots=True)
+class LlmRuntimeConfig:
+    """Structured LLM runtime configuration resolved from unified SDK config.
+
+    Port of the retry-relevant slice of the Java ``core/model/LlmConfig`` record (``maxAttempts``).
+    The attempt limit drives the retry loop of every retryable LLM step: a step failing with one of
+    the retryable codes is re-run up to ``max_attempts`` times and the exhaustion failure re-raises
+    the original error code.
+
+    Attributes:
+        max_attempts: maximum number of attempts of one retryable LLM step, always within
+            ``[LLM_MAX_ATTEMPTS_LOWER_BOUND, LLM_MAX_ATTEMPTS_UPPER_BOUND]``.
+    """
+
+    max_attempts: int = DEFAULT_LLM_MAX_ATTEMPTS
+
+    def __post_init__(self) -> None:
+        """Clamp the attempt limit into the allowed bounds, mirroring the Java parser warnings."""
+        if self.max_attempts < LLM_MAX_ATTEMPTS_LOWER_BOUND:
+            logger.warning(
+                "LLM max attempts value is below the allowed minimum, clamped to bound. key=%s raw_value=%s "
+                "clamped_value=%s",
+                LLM_MAX_ATTEMPTS_KEY,
+                self.max_attempts,
+                LLM_MAX_ATTEMPTS_LOWER_BOUND,
+            )
+            self.max_attempts = LLM_MAX_ATTEMPTS_LOWER_BOUND
+        elif self.max_attempts > LLM_MAX_ATTEMPTS_UPPER_BOUND:
+            logger.warning(
+                "LLM max attempts value is above the allowed maximum, clamped to bound. key=%s raw_value=%s "
+                "clamped_value=%s",
+                LLM_MAX_ATTEMPTS_KEY,
+                self.max_attempts,
+                LLM_MAX_ATTEMPTS_UPPER_BOUND,
+            )
+            self.max_attempts = LLM_MAX_ATTEMPTS_UPPER_BOUND
+
+    @classmethod
+    def from_mapping(cls, values: Mapping[str, str] | None) -> "LlmRuntimeConfig":
+        """Build one LLM runtime config from raw ``.env`` values.
+
+        A blank value keeps the default. A non-numeric value logs a warning and falls back to the
+        default; an out-of-range value is clamped to the bound with a warning (Java
+        ``LlmConfig.parseMaxAttempts`` parity).
+
+        Args:
+            values: raw config values keyed by config key.
+
+        Returns:
+            the resolved LLM runtime config.
+        """
+        raw_value = (values or {}).get(LLM_MAX_ATTEMPTS_KEY)
+        if raw_value is None or not raw_value.strip():
+            return cls(DEFAULT_LLM_MAX_ATTEMPTS)
+        trimmed = raw_value.strip()
+        try:
+            return cls(int(trimmed))
+        except ValueError:
+            logger.warning(
+                "LLM max attempts value is not a valid integer, falling back to default. key=%s raw_value=%s "
+                "default_value=%s",
+                LLM_MAX_ATTEMPTS_KEY,
+                trimmed,
+                DEFAULT_LLM_MAX_ATTEMPTS,
+            )
+            return cls(DEFAULT_LLM_MAX_ATTEMPTS)
+
+    @classmethod
+    def from_env(cls) -> "LlmRuntimeConfig":
+        """Build one LLM runtime config from the process environment.
+
+        Returns:
+            the resolved LLM runtime config.
+        """
+        return cls.from_mapping(os.environ)
+
+
+@dataclass(slots=True)
 class PromptComplianceConfig:
     """Top-level configuration for prompt compliance."""
 
@@ -95,6 +189,7 @@ class A2ATConfig:
     prompt: PromptRuntimeConfig
     prompt_compliance: PromptComplianceConfig
     input_limits: InputLimitConfig = field(default_factory=InputLimitConfig)
+    llm: LlmRuntimeConfig = field(default_factory=LlmRuntimeConfig)
 
     @classmethod
     def load(cls, env_path: Path) -> A2ATConfig:
@@ -104,4 +199,5 @@ class A2ATConfig:
             prompt=PromptRuntimeConfig.from_mapping(values, base_dir=env_path.parent),
             prompt_compliance=PromptComplianceConfig.from_mapping(values),
             input_limits=InputLimitConfig.from_map(values),
+            llm=LlmRuntimeConfig.from_mapping(values),
         )

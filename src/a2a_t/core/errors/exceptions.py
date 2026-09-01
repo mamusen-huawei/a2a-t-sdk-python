@@ -26,6 +26,7 @@ __all__ = [
     "ConfigFileNotFoundError",
     "ContentValidationError",
     "NegotiationGenerationError",
+    "NegotiationParamExtractionError",
     "PromptGenerationError",
     "ResourceNotFoundError",
     "SlotValidationError",
@@ -193,6 +194,31 @@ class NegotiationGenerationError(A2ATBusinessError):
     tree collapses that intermediate base, so catch :class:`A2ATBusinessError` for full negotiation
     business-failure coverage.
     """
+
+
+class NegotiationParamExtractionError(A2ATBusinessError):
+    """Raised when validating a negotiation message and extracting its parameters fails.
+
+    Java parity: extends the business base through ``NegotiationProcessingException``; the Python
+    tree collapses that intermediate base (same as :class:`NegotiationGenerationError`). Carries
+    the structured per-slot validation details in :attr:`errors` (Java
+    ``NegotiationParamExtractionException.errors``); a message rendered upstream (for example by
+    the shared validation pipeline) survives the wrap unchanged when passed explicitly, so the
+    facts stay available to callers without re-rendering.
+    """
+
+    def __init__(
+        self,
+        code: ErrorCatalog,
+        facts: Mapping[str, object] | None = None,
+        *,
+        language: str | None = None,
+        message: str | None = None,
+        cause: BaseException | None = None,
+        errors: Iterable[SlotValidationError] | None = None,
+    ) -> None:
+        super().__init__(code, facts, language=language, message=message, cause=cause)
+        self.errors: list[SlotValidationError] = list(errors or ())
 
 
 class ResourceNotFoundError(A2ATError):

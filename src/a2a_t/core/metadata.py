@@ -18,6 +18,8 @@ from typing import ClassVar, Final
 
 __all__ = [
     "NEGOTIATION_CONTEXT_METADATA_KEY",
+    "NEGOTIATION_T_EXTENSION_URI",
+    "NEGOTIATION_T_EXTENSION_URI_NL",
     "TEMPLATE_URI_METADATA_KEY",
     "MetadataContent",
     "NegotiationContext",
@@ -29,6 +31,19 @@ TEMPLATE_URI_METADATA_KEY: Final[str] = "templateUri"
 
 #: Metadata key carrying the negotiation session context alongside the message itself.
 NEGOTIATION_CONTEXT_METADATA_KEY: Final[str] = "negotiationContext"
+
+#: Canonical URI of the Negotiation-T extension (Java ``ExtensionUriConstants`` negotiation slice):
+#: the URI under which generated negotiation messages travel in A2A-T metadata.
+NEGOTIATION_T_EXTENSION_URI: Final[str] = (
+    "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/v1"
+)
+
+#: Legacy alias URI of the Negotiation-T extension, kept for runtime compatibility reads of
+#: messages emitted under the ``NL`` naming; new metadata emission uses
+#: :data:`NEGOTIATION_T_EXTENSION_URI`.
+NEGOTIATION_T_EXTENSION_URI_NL: Final[str] = (
+    "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"
+)
 
 
 class NegotiationPerformative(StrEnum):
