@@ -122,7 +122,9 @@ class NegotiationHandlingRuntimeTest(unittest.TestCase):
             )
         )
 
-        negotiation_data = payload["https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"]
+        negotiation_data = payload[
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"
+        ]
         self.assertEqual(negotiation_data["round"], 2)
         self.assertEqual(negotiation_data["message"], "Here is the target.")
 
@@ -306,4 +308,6 @@ class NegotiationHandlingRuntimeTest(unittest.TestCase):
         )
 
         self.assertTrue(result["needResponse"])
-        self.assertEqual(result["message"], "Negotiation reached the maximum in-progress round limit. Please reject it.")
+        self.assertEqual(
+            result["message"], "Negotiation reached the maximum in-progress round limit. Please reject it."
+        )

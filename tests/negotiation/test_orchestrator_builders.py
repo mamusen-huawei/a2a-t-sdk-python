@@ -48,7 +48,12 @@ class FakeOrchestrator:
         type(self).last_kwargs = dict(kwargs)
 
     def start_negotiation(self, input: object) -> dict[str, object]:
-        return {"https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1": {"role": "fake", "message": "fake"}}
+        return {
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1": {
+                "role": "fake",
+                "message": "fake",
+            }
+        }
 
 
 class FakeStoreFactory:
@@ -105,8 +110,12 @@ class NegotiationOrchestratorBuilderTest(unittest.TestCase):
             )
         )
 
-        self.assertIn("https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result)
-        negotiation_data = result["https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"]
+        self.assertIn(
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result
+        )
+        negotiation_data = result[
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"
+        ]
         self.assertEqual(negotiation_data["role"], "client")
         self.assertEqual(len(store_factory.calls), 1)
 
@@ -135,8 +144,12 @@ class NegotiationOrchestratorBuilderTest(unittest.TestCase):
             )
         )
 
-        self.assertIn("https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result)
-        negotiation_data = result["https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"]
+        self.assertIn(
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result
+        )
+        negotiation_data = result[
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"
+        ]
         self.assertEqual(negotiation_data["role"], "server")
         self.assertEqual(len(prompt_compliance_builder.calls), 1)
         self.assertEqual(len(store_factory.calls), 1)

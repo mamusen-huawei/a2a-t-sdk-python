@@ -46,7 +46,11 @@ from a2a_t.negotiation.content import (
     NegotiationItem,
 )
 from a2a_t.negotiation.content.models import NegotiationEndingData, NegotiationProposeData
-from a2a_t.negotiation.generation import NegotiationGenerationOrchestrator
+from a2a_t.negotiation.content.vocabulary import Vocabulary
+from a2a_t.negotiation.generation import (
+    DefaultNegotiationContentExtractor,
+    NegotiationGenerationOrchestrator,
+)
 from a2a_t.negotiation.generation.builder import builder
 from a2a_t.negotiation.resources.reference import NegotiationReference
 
@@ -496,8 +500,23 @@ def test_the_validation_leg_rejects_a_null_schema_before_any_collaborator(method
 
 
 def test_the_unwired_validation_leg_fails_with_a_clear_wiring_error() -> None:
+    """The orchestrator guard fires only when constructed without a parameter extractor.
+
+    The builder always wires the default P6 validation pipeline now (Java parity), so the unwired
+    state is reachable only by constructing the orchestrator directly.
+    """
+    access = PackagedPromptResourceAccess()
+    orchestrator = NegotiationGenerationOrchestrator(
+        language="zh-CN",
+        max_text_chars=DEFAULT_MAX_TEXT_CHARS,
+        resource_access=access,
+        content_extractor=DefaultNegotiationContentExtractor(None),
+        param_extractor=None,
+        vocabulary=Vocabulary.for_language("zh-CN", access=access),
+    )
+
     with pytest.raises(RuntimeError, match="param extractor is not configured"):
-        wired().validate_propose_prompt_and_data_filling(
+        orchestrator.validate_propose_prompt_and_data_filling(
             "## 所需信息项\n1. 区域\n",
             default_context(NegotiationPerformative.PROPOSE),
             {"type": "object"},

@@ -219,11 +219,17 @@ class NegotiationOrchestratorTest(unittest.TestCase):
             logger.info_messages,
         )
         self.assertIn(
-            ("negotiation_receive_completed role=%s type=%s id=%s status=%s", ("server", "target", "neg-1", "in-progress")),
+            (
+                "negotiation_receive_completed role=%s type=%s id=%s status=%s",
+                ("server", "target", "neg-1", "in-progress"),
+            ),
             logger.info_messages,
         )
         self.assertIn(
-            ("negotiation_continue_started role=%s type=%s id=%s status=%s", ("server", "target", "neg-1", "in-progress")),
+            (
+                "negotiation_continue_started role=%s type=%s id=%s status=%s",
+                ("server", "target", "neg-1", "in-progress"),
+            ),
             logger.info_messages,
         )
         self.assertIn(

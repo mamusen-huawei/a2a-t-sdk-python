@@ -37,7 +37,7 @@ class InformationNegotiationType(BaseNegotiationType):
                 message=message,
                 context=context,
                 record=None,
-        )
+            )
 
         compliance_result = self._prompt_checker.check(
             processed_prompt_text=message,

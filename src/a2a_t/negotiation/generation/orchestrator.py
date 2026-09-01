@@ -53,7 +53,8 @@ null data / context / schema     ``TypeError`` (Java ``NullPointerException``)
 Two port-specific seams replace Java collaborators: the template loader is the common resource
 access layer (D31 — the Java ``DefaultNegotiationTemplateLoader`` is not ported), and the parameter
 extractor of the validation leg is the :class:`NegotiationParamExtractor` protocol below, whose
-default implementation is completed by the P6 validation pipeline.
+default implementation is the P6 validation pipeline
+(:class:`a2a_t.negotiation.validation.param_extractor.ParamExtractor`, wired by the builder).
 """
 
 from __future__ import annotations
@@ -655,10 +656,12 @@ class NegotiationGenerationOrchestrator:
     def _require_param_extractor(self) -> NegotiationParamExtractor:
         """Return the wired parameter extractor, failing clearly when the leg is unwired.
 
-        The default wiring of the validation pipeline is delivered by the P6 stage; until then the
-        leg only runs with an explicitly injected extractor, and calling it without one is a
-        wiring error (Java ``IllegalStateException`` parity: a plain runtime failure outside the
-        coded business tree, never a fake partial validation result).
+        The builder wires the default validation pipeline (the P6
+        :class:`~a2a_t.negotiation.validation.param_extractor.ParamExtractor` composed from the
+        compliance checker, the semantic validator and the template loading gate); an orchestrator
+        constructed directly without one is a wiring error (Java ``IllegalStateException`` parity: a
+        plain runtime failure outside the coded business tree, never a fake partial validation
+        result).
         """
         if self._param_extractor is None:
             raise RuntimeError(

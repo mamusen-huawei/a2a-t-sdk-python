@@ -6,15 +6,13 @@ collaborators are injected as plain keyword arguments instead of chained setters
 
 The language is required. The LLM client is optional: without one the from-data generation still
 works, while the LLM steps of the from-text generation fail with the ``llm.not_configured`` code
-inside the extractor. Every generation collaborator has a default implementation wired from the
+inside the extractor and the semantic validation step of the validation leg fails with the same code
+inside the semantic validator. Every collaborator has a default implementation wired from the
 language (packaged templates and the routed negotiation vocabulary, D31), and each of them can be
-overridden for testing or customization.
-
-The validation-leg collaborators of the Java builder (the compliance checker and the semantic
-validator) are collapsed into the single :class:`~a2a_t.negotiation.generation.orchestrator.NegotiationParamExtractor`
-seam here: the concrete default extractor is delivered by the P6 validation pipeline, so until then
-the validation leg runs only with an explicitly injected extractor and fails with a clear wiring
-error when called without one (never with a fake partial result).
+overridden for testing or customization — including the two validation-leg collaborators of the Java
+builder, the rule-level compliance checker and the LLM-backed semantic validator, which are composed
+into the default :class:`~a2a_t.negotiation.validation.param_extractor.ParamExtractor` unless a
+complete parameter extractor is injected instead.
 
 Two deliberate divergences from the Java builder: the template loader seam is the common resource
 access layer (``resource_access``) rather than a negotiation-private loader (D31 — the Java
@@ -36,6 +34,9 @@ from a2a_t.core.errors.input_limit import DEFAULT_MAX_TEXT_CHARS, InputLimitConf
 from a2a_t.llm.provider import LLMClient
 
 from ..content.vocabulary import Vocabulary
+from ..validation.compliance_checker import DefaultNegotiationComplianceChecker, NegotiationComplianceChecker
+from ..validation.param_extractor import NegotiationTemplateContentLoader, ParamExtractor
+from ..validation.semantic_validator import DefaultNegotiationSemanticValidator, NegotiationSemanticValidator
 from .content_extractor import DefaultNegotiationContentExtractor, NegotiationContentExtractor
 from .orchestrator import NegotiationGenerationOrchestrator, NegotiationParamExtractor
 
@@ -64,8 +65,14 @@ class NegotiationGenerationOrchestratorBuilder:
             classpath-fixed template loader).
         content_extractor: extractor turning free text into typed negotiation content; ``None``
             wires the default extractor over :attr:`llm_client`.
-        param_extractor: parameter extractor of the validation leg (P6 seam); ``None`` keeps that
-            leg unwired.
+        compliance_checker: rule-level compliance checker of the validation leg; ``None`` wires the
+            default checker rendering messages in :attr:`language`.
+        semantic_validator: LLM-backed semantic validator of the validation leg; ``None`` wires the
+            default validator over :attr:`llm_client`.
+        param_extractor: parameter extractor of the validation leg; ``None`` composes the default
+            extractor from :attr:`compliance_checker`, :attr:`semantic_validator`,
+            :attr:`max_attempts` and the template loading gate over :attr:`resource_access`
+            (Java ``ParamExtractor`` wiring).
     """
 
     language: str | None = None
@@ -74,6 +81,8 @@ class NegotiationGenerationOrchestratorBuilder:
     max_text_chars: int = DEFAULT_MAX_TEXT_CHARS
     resource_access: PromptResourceAccess | None = None
     content_extractor: NegotiationContentExtractor | None = None
+    compliance_checker: NegotiationComplianceChecker | None = None
+    semantic_validator: NegotiationSemanticValidator | None = None
     param_extractor: NegotiationParamExtractor | None = None
 
     def build(self) -> NegotiationGenerationOrchestrator:
@@ -107,18 +116,40 @@ class NegotiationGenerationOrchestratorBuilder:
                 input_limit=InputLimitConfig(self.max_text_chars),
             )
         )
+        effective_param_extractor = self._effective_param_extractor(effective_access)
         return NegotiationGenerationOrchestrator(
             language=self.language,
             max_text_chars=self.max_text_chars,
             resource_access=effective_access,
             content_extractor=effective_content_extractor,
-            param_extractor=self.param_extractor,
+            param_extractor=effective_param_extractor,
             vocabulary=vocabulary,
         )
 
     def _effective_access(self) -> PromptResourceAccess:
         """Return the injected resource access or the packaged default."""
         return PackagedPromptResourceAccess() if self.resource_access is None else self.resource_access
+
+    def _effective_param_extractor(self, effective_access: PromptResourceAccess) -> NegotiationParamExtractor:
+        """Return the injected parameter extractor or the composed default (Java ``build`` wiring)."""
+        if self.param_extractor is not None:
+            return self.param_extractor
+        effective_compliance_checker = (
+            self.compliance_checker
+            if self.compliance_checker is not None
+            else DefaultNegotiationComplianceChecker(self.language)
+        )
+        effective_semantic_validator = (
+            self.semantic_validator
+            if self.semantic_validator is not None
+            else DefaultNegotiationSemanticValidator(self.llm_client)
+        )
+        return ParamExtractor(
+            effective_compliance_checker,
+            effective_semantic_validator,
+            self.max_attempts,
+            NegotiationTemplateContentLoader(effective_access),
+        )
 
 
 def builder() -> NegotiationGenerationOrchestratorBuilder:
