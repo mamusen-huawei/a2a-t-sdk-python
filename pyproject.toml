@@ -33,11 +33,16 @@ dev = [
     "ruff>=0.3.0",
     "mypy>=1.9.0",
     "types-jsonschema>=4.23.0",
+    "hypothesis>=6.167.1",
 ]
 
 [project.urls]
 Homepage = "https://github.com/project-openan/a2a-t-sdk-python"
 Documentation = "https://github.com/project-openan/a2a-t-sdk-python#readme"
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
 
 [tool.uv.build-backend]
 module-name = "a2a_t"
