@@ -4,14 +4,14 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from a2a_t.common.prompt_resources import (
-    PromptResourceNotFoundError,
-    PromptResourceParseError,
-)
+from a2a_t.common.prompt_resources import PromptResourceAccess
+from a2a_t.common.prompt_resources.models import PromptMessages, SlotSchema, slot_schema_from_json_schema
 from a2a_t.config.models import PromptRuntimeConfig
 from a2a_t.core.errors.catalog import ErrorCatalog
+from a2a_t.core.errors.exceptions import A2ATBusinessError, A2ATError
 from a2a_t.core.errors.input_limit import InputLimitConfig
 from a2a_t.core.errors.messages import render as render_error_message
+from a2a_t.core.prompt_resource_key import PromptResourceKey
 from a2a_t.llm.errors import LLMConfigError, is_response_contract_violation
 from a2a_t.prompt.analysis import ScenarioResolutionOrchestrator
 from a2a_t.prompt.analysis.errors import PromptAnalysisError
@@ -19,7 +19,6 @@ from a2a_t.prompt.analysis.scenario_resolution_orchestrator import (
     DEFAULT_SCENARIO_REASON,
     PREPARATION_STAGE,
 )
-from a2a_t.prompt.common.errors import PromptSourceError
 from a2a_t.prompt.common.models import PromptReference
 from a2a_t.prompt.task_rendering import TaskPromptRenderer
 from a2a_t.prompt.task_rendering.errors import TaskPromptRenderError
@@ -33,17 +32,23 @@ _LOGGER = logging.getLogger(__name__)
 #: Step label reported in ``llm.response_invalid`` when the slot-extraction step fails.
 _STEP_SLOT_EXTRACTION = "slot extraction"
 
+#: Analysis action whose system/user prompts drive slot extraction.
+_SLOT_EXTRACTION_ACTION = "slot_extraction"
+
 
 class PromptGenerationOrchestrator:
-    """Coordinate the full client-side prompt generation pipeline."""
+    """Coordinate the full client-side prompt generation pipeline.
+
+    Every resource — template text, slot schema and the slot-extraction instruction prompts — is
+    loaded through the shared resource access layer (D31): templates and slot schemas follow the
+    configured source routing, the instruction prompts are always the packaged SDK contract.
+    """
 
     def __init__(
         self,
         *,
         config: PromptRuntimeConfig,
-        prompt_resource_loader: Any,
-        template_loader: Any,
-        slot_schema_loader: Any,
+        resource_access: PromptResourceAccess,
         scenario_resolver: ScenarioResolutionOrchestrator,
         slot_extractor: Any,
         input_normalizer: InputNormalizer | None = None,
@@ -54,9 +59,7 @@ class PromptGenerationOrchestrator:
         if not isinstance(config, PromptRuntimeConfig):
             raise TypeError("config must be a PromptRuntimeConfig instance.")
         self._config = config
-        self._prompt_resource_loader = prompt_resource_loader
-        self._template_loader = template_loader
-        self._slot_schema_loader = slot_schema_loader
+        self._resource_access = resource_access
         self._scenario_resolver = scenario_resolver
         self._slot_extractor = slot_extractor
         self._input_normalizer = input_normalizer or InputNormalizer()
@@ -185,55 +188,51 @@ class PromptGenerationOrchestrator:
         self,
         *,
         reference: PromptReference,
-    ) -> tuple[str, Any, Any, Any]:
-        """Load generation resources and specialize missing-resource failures by artifact type."""
+    ) -> tuple[str, str, SlotSchema, PromptMessages]:
+        """Load generation resources through the shared resource access layer.
+
+        The access layer already raises the artifact-specific catalog codes — ``template.not_found``
+        for a missing template, ``slot.schema_not_found`` for a missing slot schema — so the
+        business failures pass straight through; every other access failure maps to
+        ``template.load_failed`` with the failing resource path as the fact.
+        """
         try:
-            template_text = self._template_loader.load(
-                reference=reference,
+            template_text = self._resource_access.template_text(reference.scenario_code, reference.language)
+            slot_json_schema = self._resource_access.slot_schema(reference.scenario_code, reference.language)
+            slot_schema = slot_schema_from_json_schema(
+                slot_json_schema,
+                scenario_code=reference.scenario_code,
             )
-            slot_schema = self._slot_schema_loader.load(
-                reference=reference,
-            )
-            slot_prompts = self._prompt_resource_loader.load(
-                analysis_action="slot_extraction",
-                language=reference.language,
-            )
-            return reference.language, template_text, slot_schema, slot_prompts
-        except _PromptGenerationResourceError:
-            raise
-        except PromptResourceNotFoundError as error:
-            resource_path = str(error.context.get("path", ""))
-            # Different missing artifacts produce different public error codes
-            # even though loaders share one exception type.
-            if resource_path.endswith("template.md"):
-                raise _PromptGenerationResourceError(
-                    entry=ErrorCatalog.TEMPLATE_NOT_FOUND,
-                    facts={"template_uri": reference.scenario_code, "language": reference.language},
-                    stage=PREPARATION_STAGE,
-                ) from error
-            if resource_path.endswith("slot.json"):
-                raise _PromptGenerationResourceError(
-                    entry=ErrorCatalog.SLOT_SCHEMA_NOT_FOUND,
-                    facts={"template_uri": reference.scenario_code, "language": reference.language},
-                    stage=PREPARATION_STAGE,
-                ) from error
+        except A2ATBusinessError as error:
             raise _PromptGenerationResourceError(
-                entry=ErrorCatalog.TEMPLATE_LOAD_FAILED,
-                facts={"resource_path": resource_path or str(error)},
+                entry=error.code,
+                facts=error.facts,
                 stage=PREPARATION_STAGE,
             ) from error
-        except PromptResourceParseError as error:
+        except A2ATError as error:
             raise _PromptGenerationResourceError(
                 entry=ErrorCatalog.TEMPLATE_LOAD_FAILED,
-                facts={"resource_path": str(error.context.get("path", error))},
+                facts={"resource_path": reference.scenario_code},
                 stage=PREPARATION_STAGE,
             ) from error
-        except PromptSourceError as error:
+        try:
+            slot_prompts = PromptMessages(
+                system_prompt=self._resource_access.load_prompt(
+                    _SLOT_EXTRACTION_ACTION, reference.language, "system.md"
+                ),
+                user_prompt=self._resource_access.load_prompt(_SLOT_EXTRACTION_ACTION, reference.language, "user.md"),
+            )
+        except A2ATError as error:
             raise _PromptGenerationResourceError(
                 entry=ErrorCatalog.TEMPLATE_LOAD_FAILED,
-                facts={"resource_path": str(error.context.get("locator", reference.scenario_code))},
+                facts={
+                    "resource_path": PromptResourceKey.prompt(
+                        _SLOT_EXTRACTION_ACTION, reference.language, "system.md"
+                    ).relative_path()
+                },
                 stage=PREPARATION_STAGE,
             ) from error
+        return reference.language, template_text, slot_schema, slot_prompts
 
     def _render_prompt_text(
         self,

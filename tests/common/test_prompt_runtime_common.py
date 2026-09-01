@@ -1,104 +1,110 @@
+"""Tests for the shared prompt runtime components built from configuration.
+
+The components builder now wires the single D31 resource access object (plus the stateless
+JSON-schema validator); the routing, frozen-snapshot and custom-root warning behavior itself is
+covered by ``tests/common/prompt_resources`` — these tests pin what the builder assembles.
+"""
+
 from __future__ import annotations
 
-import sys
-import unittest
+import logging
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
+import pytest
 
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-
+from a2a_t.common.prompt_resources import (
+    LocalFilePromptResourceAccess,
+    PackagedPromptResourceAccess,
+    PromptResourceAccess,
+)
+from a2a_t.common.prompt_runtime import PromptRuntimeComponents, PromptRuntimeComponentsBuilder
 from a2a_t.config.models import A2ATConfig, PromptComplianceConfig, PromptRuntimeConfig
-from tests.support import ManagedTempDirTestCase
+from a2a_t.prompt.validation.json_schema_slot_validator import JsonSchemaSlotValidator
+
+ACCESS_LOGGER = "a2a_t.common.prompt_resources.resource_access"
 
 
-class CommonPromptRuntimeComponentsBuilderTest(unittest.TestCase):
-    def test_common_builder_creates_shared_runtime_components_from_config(self) -> None:
-        from a2a_t.common.prompt_resources.prompt_resource_loader import PromptResourceLoader
-        from a2a_t.common.prompt_resources.slot_schema_loader import SlotSchemaLoader
-        from a2a_t.common.prompt_runtime import PromptRuntimeComponentsBuilder
-        from a2a_t.prompt.validation.json_schema_slot_validator import JsonSchemaSlotValidator
-
-        config = A2ATConfig(
-            prompt=PromptRuntimeConfig(
-                language="zh-CN",
-                source_type="local_file",
-                local_root_dir="./runtime-prompt-resources",
-            ),
-            prompt_compliance=PromptComplianceConfig(enabled=True),
-        )
-
-        components = PromptRuntimeComponentsBuilder().build(config=config)
-
-        self.assertEqual(components.scenario_loader.root_dir, Path("./runtime-prompt-resources"))
-        self.assertEqual(components.template_loader.root_dir, Path("./runtime-prompt-resources"))
-        self.assertEqual(components.slot_schema_loader.root_dir, Path("./runtime-prompt-resources"))
-        self.assertIsInstance(components.slot_schema_loader, SlotSchemaLoader)
-        self.assertEqual(components.slot_schema_loader.root_dir, Path("./runtime-prompt-resources"))
-        self.assertIsInstance(components.prompt_resource_loader, PromptResourceLoader)
-        self.assertEqual(components.prompt_resource_loader.root_dir, PromptResourceLoader().root_dir)
-        self.assertIsInstance(components.json_schema_slot_validator, JsonSchemaSlotValidator)
+def _config(local_root_dir: str, *, language: str = "en-US", source_type: str = "local_file") -> A2ATConfig:
+    return A2ATConfig(
+        prompt=PromptRuntimeConfig(language=language, source_type=source_type, local_root_dir=local_root_dir),
+        prompt_compliance=PromptComplianceConfig(enabled=True),
+    )
 
 
-class CommonPromptRuntimeComponentsBuilderRootScopeAdjustmentTest(ManagedTempDirTestCase):
-    def _build_config(self) -> A2ATConfig:
-        return A2ATConfig(
-            prompt=PromptRuntimeConfig(
-                language="en-US",
-                source_type="local_file",
-                local_root_dir=str(self.root),
-            ),
-            prompt_compliance=PromptComplianceConfig(enabled=True),
-        )
+def test_components_builder_creates_the_resource_access_from_the_config(tmp_path: Path) -> None:
+    components = PromptRuntimeComponentsBuilder().build(config=_config(str(tmp_path)))
 
-    def _write_resource_file(self, relative_path: str, content: str) -> None:
-        path = self.root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+    assert isinstance(components, PromptRuntimeComponents)
+    assert isinstance(components.resource_access, LocalFilePromptResourceAccess)
+    assert components.resource_access.local_root_dir() == tmp_path
+    assert isinstance(components.json_schema_slot_validator, JsonSchemaSlotValidator)
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.root = self.make_temp_dir("runtime_root_scope")
 
-    def test_common_builder_loads_packaged_prompts_even_when_custom_root_has_no_prompts(self) -> None:
-        from a2a_t.common.prompt_runtime import PromptRuntimeComponentsBuilder
+def test_components_builder_creates_packaged_access_for_the_packaged_source_type() -> None:
+    components = PromptRuntimeComponentsBuilder().build(config=_config("", source_type="packaged"))
 
-        components = PromptRuntimeComponentsBuilder().build(config=self._build_config())
+    assert isinstance(components.resource_access, PackagedPromptResourceAccess)
 
-        scenario_prompts = components.prompt_resource_loader.load(
-            analysis_action="scenario_recognition",
-            language="en-US",
-        )
 
-        self.assertTrue(scenario_prompts.system_prompt.strip())
-        self.assertTrue(scenario_prompts.user_prompt.strip())
+def test_components_builder_reuses_an_injected_resource_access(tmp_path: Path) -> None:
+    injected = PackagedPromptResourceAccess()
 
-    def test_common_builder_warns_when_custom_root_contains_prompts_directory(self) -> None:
-        from a2a_t.common.prompt_runtime import PromptRuntimeComponentsBuilder
+    components = PromptRuntimeComponentsBuilder().build(
+        config=_config(str(tmp_path)),
+        resource_access=injected,
+    )
 
-        self._write_resource_file("prompts/scenario_recognition/en-US/system.md", "custom system")
+    assert components.resource_access is injected
 
-        with self.assertLogs("a2a_t.common.prompt_runtime.prompt_runtime_components_builder", level="WARNING") as logs:
-            PromptRuntimeComponentsBuilder().build(config=self._build_config())
 
-        self.assertTrue(any("prompts" in message for message in logs.output))
+def test_components_builder_requires_an_existing_local_root(tmp_path: Path) -> None:
+    from a2a_t.config.errors import ConfigError
 
-    def test_common_builder_does_not_warn_when_local_root_is_sdk_packaged_root(self) -> None:
-        from a2a_t.common.prompt_resources.prompt_resource_loader import PromptResourceLoader
-        from a2a_t.common.prompt_runtime import PromptRuntimeComponentsBuilder
+    missing = tmp_path / "does-not-exist"
+    with pytest.raises(ConfigError):
+        PromptRuntimeComponentsBuilder().build(config=_config(str(missing)))
 
-        packaged_root = PromptResourceLoader().root_dir
-        config = A2ATConfig(
-            prompt=PromptRuntimeConfig(
-                language="en-US",
-                source_type="local_file",
-                local_root_dir=str(packaged_root),
-            ),
-            prompt_compliance=PromptComplianceConfig(enabled=True),
-        )
 
-        with self.assertNoLogs("a2a_t.common.prompt_runtime.prompt_runtime_components_builder", level="WARNING"):
-            PromptRuntimeComponentsBuilder().build(config=config)
+def test_components_builder_loads_packaged_prompts_even_when_custom_root_has_no_prompts(tmp_path: Path) -> None:
+    components = PromptRuntimeComponentsBuilder().build(config=_config(str(tmp_path)))
+
+    access = components.resource_access
+    assert isinstance(access, PromptResourceAccess)
+    system_prompt = access.load_prompt("scenario_recognition", "en-US", "system.md")
+    user_prompt = access.load_prompt("scenario_recognition", "en-US", "user.md")
+
+    assert system_prompt.strip()
+    assert user_prompt.strip()
+
+
+def test_components_builder_warns_when_custom_root_contains_prompts_directory(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    prompts_dir = tmp_path / "prompts" / "scenario_recognition" / "en-US"
+    prompts_dir.mkdir(parents=True)
+    (prompts_dir / "system.md").write_text("custom system", encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING, logger=ACCESS_LOGGER):
+        components = PromptRuntimeComponentsBuilder().build(config=_config(str(tmp_path)))
+
+    warnings = [record.getMessage() for record in caplog.records if record.levelno == logging.WARNING]
+    assert any("prompt_resource_local_directories_ignored" in message for message in warnings), warnings
+    # The local copy is ignored: the packaged SDK contract is still served.
+    assert components.resource_access.load_prompt("scenario_recognition", "en-US", "system.md") != "custom system"
+
+
+def test_components_builder_does_not_warn_when_local_root_is_the_packaged_root(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from a2a_t.config.models import PromptRuntimeConfig as _PromptRuntimeConfig
+
+    config = A2ATConfig(
+        prompt=_PromptRuntimeConfig(),
+        prompt_compliance=PromptComplianceConfig(),
+    )
+
+    with caplog.at_level(logging.WARNING, logger=ACCESS_LOGGER):
+        PromptRuntimeComponentsBuilder().build(config=config)
+
+    warnings = [record.getMessage() for record in caplog.records if record.levelno == logging.WARNING]
+    assert not any("prompt_resource_local_directories_ignored" in message for message in warnings), warnings

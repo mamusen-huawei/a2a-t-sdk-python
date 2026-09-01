@@ -17,36 +17,19 @@ if str(SRC_ROOT) not in sys.path:
 
 from a2a_t.client.prompt_generation.generation_constants import INPUT_STAGE
 from a2a_t.client.prompt_generation.prompt_generation_orchestrator import PromptGenerationOrchestrator
-from a2a_t.common.prompt_resources.models import PromptMessages, SlotDefinition, SlotSchema
 from a2a_t.config.models import PromptRuntimeConfig
 from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.core.errors.input_limit import DEFAULT_MAX_TEXT_CHARS, InputLimitConfig
 from a2a_t.llm.models import LLMClientConfig
 from a2a_t.prompt.analysis.models import ScenarioDefinition, ScenarioResolutionResult, SlotExtractionResult
 from a2a_t.prompt.common.models import PromptReference
-from tests.support import ManagedTempDirTestCase
+from tests.support import FakePromptResourceAccess, ManagedTempDirTestCase
 
 _SCENARIO = ScenarioDefinition(
     scenario_code="ran-energy-saving",
     scenario_name="Energy Saving",
     description="Used for energy saving analysis.",
     example="Analyze site power usage and suggest optimization.",
-)
-_SLOT_SCHEMA = SlotSchema(
-    scenario_code="ran-energy-saving",
-    slots=[
-        SlotDefinition(
-            name="site",
-            required=True,
-            description="Site name",
-            example="Site A",
-            value_constraint="Must be a concrete site name.",
-            type="string",
-            allowed_values=None,
-            range=None,
-            pattern=None,
-        )
-    ],
 )
 
 
@@ -65,21 +48,6 @@ class RecordingScenarioResolver:
         )
 
 
-class FakeTemplateLoader:
-    def load(self, *, reference: PromptReference) -> str:
-        return "Site: {site}"
-
-
-class FakeSlotSchemaLoader:
-    def load(self, *, reference: PromptReference) -> SlotSchema:
-        return _SLOT_SCHEMA
-
-
-class FakePromptResourceLoader:
-    def load(self, *, analysis_action: str, language: str) -> PromptMessages:
-        return PromptMessages(system_prompt="Extract slots.", user_prompt="Return slots.")
-
-
 class FakeSlotExtractor:
     def __init__(self) -> None:
         self.last_raw_response_content: str | None = None
@@ -91,9 +59,17 @@ class FakeSlotExtractor:
 def _build_orchestrator(*, input_limit: InputLimitConfig | None = None) -> PromptGenerationOrchestrator:
     return PromptGenerationOrchestrator(
         config=PromptRuntimeConfig(language="en-US"),
-        prompt_resource_loader=FakePromptResourceLoader(),
-        template_loader=FakeTemplateLoader(),
-        slot_schema_loader=FakeSlotSchemaLoader(),
+        resource_access=FakePromptResourceAccess(
+            template_text="Site: {site}",
+            slot_json_schema={
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {"site": {"type": "string"}},
+                "required": ["site"],
+            },
+            system_prompt="Extract slots.",
+            user_prompt="Return slots.",
+        ),
         scenario_resolver=RecordingScenarioResolver(),
         slot_extractor=FakeSlotExtractor(),
         input_limit=input_limit,
@@ -205,16 +181,11 @@ def test_builder_passes_the_configured_input_limit_into_the_orchestrator() -> No
     from a2a_t.config.models import A2ATConfig, PromptComplianceConfig, PromptRuntimeConfig
 
     class FakeRuntimeComponentsBuilder:
-        def build(self, *, config: A2ATConfig) -> object:
+        def build(self, *, config: A2ATConfig, resource_access: object | None = None) -> object:
             return type(
                 "Components",
                 (),
-                {
-                    "scenario_loader": object(),
-                    "prompt_resource_loader": object(),
-                    "template_loader": object(),
-                    "slot_schema_loader": object(),
-                },
+                {"resource_access": resource_access if resource_access is not None else object()},
             )()
 
     class FakeOrchestrator:

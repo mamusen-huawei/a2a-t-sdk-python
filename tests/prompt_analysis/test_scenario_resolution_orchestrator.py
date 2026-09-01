@@ -1,218 +1,232 @@
+"""Tests for the scenario resolution orchestrator on the D31 resource access layer."""
+
 from __future__ import annotations
 
-import sys
-import unittest
-from pathlib import Path
+from typing import Any
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
+import pytest
 
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-
-from a2a_t.common.prompt_resources.errors import PromptResourceNotFoundError
 from a2a_t.common.prompt_resources.models import PromptMessages, ScenarioDefinition
 from a2a_t.config.models import PromptRuntimeConfig
 from a2a_t.core.errors.catalog import ErrorCatalog
+from a2a_t.core.errors.exceptions import A2ATError
 from a2a_t.prompt.analysis.models import ScenarioRecognitionResult
-from a2a_t.server.prompt_compliance.constants import PROMPT_PARSE_STAGE
+
+SCENARIOS = [
+    ScenarioDefinition(
+        scenario_code="ran-energy-saving",
+        scenario_name="Energy Saving",
+        description="Energy saving analysis tasks.",
+        example="Analyze site power usage and suggest optimization.",
+    )
+]
+
+SCENARIO_PROMPTS = PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario.")
 
 
-class FakeScenarioLoader:
-    def __init__(self, result: object) -> None:
-        self._result = result
-        self.calls: list[dict[str, str]] = []
+class FakeResourceAccess:
+    """Fake access object serving canned scenarios and scenario-recognition prompts."""
 
-    def load(self, *, language: str) -> list[ScenarioDefinition]:
-        self.calls.append({"language": language})
-        if isinstance(self._result, Exception):
-            raise self._result
-        return self._result
+    def __init__(
+        self,
+        *,
+        scenarios: list[ScenarioDefinition] | Exception = SCENARIOS,
+        prompts: PromptMessages | Exception = SCENARIO_PROMPTS,
+    ) -> None:
+        self._scenarios = scenarios
+        self._prompts = prompts
+        self.scenario_calls: list[str] = []
+        self.prompt_calls: list[tuple[str, str, str]] = []
 
+    def load_scenarios(self, language: str) -> list[ScenarioDefinition]:
+        self.scenario_calls.append(language)
+        if isinstance(self._scenarios, Exception):
+            raise self._scenarios
+        return self._scenarios
 
-class FakePromptResourceLoader:
-    def __init__(self, result: object) -> None:
-        self._result = result
-        self.calls: list[dict[str, str]] = []
-
-    def load(self, *, analysis_action: str, language: str) -> PromptMessages:
-        self.calls.append({"analysis_action": analysis_action, "language": language})
-        if isinstance(self._result, Exception):
-            raise self._result
-        return self._result
+    def load_prompt(self, category: str, language: str, file_name: str) -> str:
+        self.prompt_calls.append((category, language, file_name))
+        if isinstance(self._prompts, Exception):
+            raise self._prompts
+        if file_name == "system.md":
+            return self._prompts.system_prompt
+        return self._prompts.user_prompt
 
 
 class FakeScenarioRecognizer:
     def __init__(self, result: ScenarioRecognitionResult | Exception) -> None:
         self._result = result
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[dict[str, Any]] = []
 
     def recognize(self, **kwargs: object) -> ScenarioRecognitionResult:
-        self.calls.append(kwargs)
+        self.calls.append(dict(kwargs))
         if isinstance(self._result, Exception):
             raise self._result
         return self._result
 
 
-class ScenarioResolutionOrchestratorTest(unittest.TestCase):
-    def _build_orchestrator(
-        self,
-        *,
-        scenario_result: object,
-        prompt_result: object,
-        recognition_result: ScenarioRecognitionResult | Exception,
-        language: str = "zh-CN",
-    ):
-        from a2a_t.prompt.analysis.scenario_resolution_orchestrator import ScenarioResolutionOrchestrator
+def _build_orchestrator(
+    *,
+    access: FakeResourceAccess,
+    recognition_result: ScenarioRecognitionResult | Exception,
+    language: str = "zh-CN",
+) -> Any:
+    from a2a_t.prompt.analysis.scenario_resolution_orchestrator import ScenarioResolutionOrchestrator
 
-        self.scenario_loader = FakeScenarioLoader(scenario_result)
-        self.prompt_resource_loader = FakePromptResourceLoader(prompt_result)
-        self.scenario_recognizer = FakeScenarioRecognizer(recognition_result)
+    return ScenarioResolutionOrchestrator(
+        config=PromptRuntimeConfig(language=language),
+        resource_access=access,
+        scenario_recognizer=FakeScenarioRecognizer(recognition_result),
+    )
 
-        return ScenarioResolutionOrchestrator(
-            config=PromptRuntimeConfig(language=language),
-            scenario_loader=self.scenario_loader,
-            prompt_resource_loader=self.prompt_resource_loader,
-            scenario_recognizer=self.scenario_recognizer,
-        )
 
-    def test_resolve_returns_reference_and_scenario_when_recognition_succeeds(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=[
-                ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Energy saving analysis tasks.",
-                    example="Analyze site power usage and suggest optimization.",
-                )
-            ],
-            prompt_result=PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario."),
-            recognition_result=ScenarioRecognitionResult(
-                matched=True,
-                scenario_code="ran-energy-saving",
-                error_message=None,
+def test_resolve_returns_reference_and_scenario_when_recognition_succeeds() -> None:
+    access = FakeResourceAccess()
+    orchestrator = _build_orchestrator(
+        access=access,
+        recognition_result=ScenarioRecognitionResult(
+            matched=True,
+            scenario_code="ran-energy-saving",
+            error_message=None,
+        ),
+    )
+
+    result = orchestrator.resolve("Please analyze site A energy usage.")
+
+    assert result.success is True
+    assert result.failure is None
+    assert result.reference is not None
+    assert result.reference.scenario_code == "ran-energy-saving"
+    assert result.reference.language == "zh-CN"
+    assert result.scenario is not None
+    assert result.scenario.scenario_code == "ran-energy-saving"
+    assert access.scenario_calls == ["zh-CN"]
+    assert access.prompt_calls == [
+        ("scenario_recognition", "zh-CN", "system.md"),
+        ("scenario_recognition", "zh-CN", "user.md"),
+    ]
+
+
+def test_resolve_requires_a_prompt_runtime_config() -> None:
+    from a2a_t.prompt.analysis.scenario_resolution_orchestrator import ScenarioResolutionOrchestrator
+
+    with pytest.raises(TypeError):
+        ScenarioResolutionOrchestrator(
+            config=object(),  # type: ignore[arg-type]
+            resource_access=FakeResourceAccess(),
+            scenario_recognizer=FakeScenarioRecognizer(
+                ScenarioRecognitionResult(matched=True, scenario_code="ran-energy-saving", error_message=None)
             ),
         )
 
-        result = orchestrator.resolve("Please analyze site A energy usage.")
 
-        self.assertTrue(result.success)
-        self.assertIsNone(result.failure)
-        self.assertEqual(result.reference.scenario_code, "ran-energy-saving")
-        self.assertEqual(result.reference.language, "zh-CN")
-        self.assertEqual(result.scenario.scenario_code, "ran-energy-saving")
-        self.assertEqual(
-            self.scenario_loader.calls,
-            [{"language": "zh-CN"}],
-        )
-        self.assertEqual(
-            self.prompt_resource_loader.calls,
-            [{"analysis_action": "scenario_recognition", "language": "zh-CN"}],
-        )
-        self.assertEqual(self.scenario_recognizer.calls[0]["language"], "zh-CN")
+@pytest.mark.parametrize(
+    "recognition_result",
+    [
+        ScenarioRecognitionResult(matched=False, scenario_code=None, error_message="No matching scenario."),
+        ScenarioRecognitionResult(matched=True, scenario_code=None, error_message=None),
+        ScenarioRecognitionResult(matched=True, scenario_code="", error_message=None),
+    ],
+    ids=["unmatched", "no-code", "blank-code"],
+)
+def test_resolve_returns_prompt_parse_failure_when_recognition_reports_unmatched(
+    recognition_result: ScenarioRecognitionResult,
+) -> None:
+    orchestrator = _build_orchestrator(
+        access=FakeResourceAccess(),
+        recognition_result=recognition_result,
+        language="en-US",
+    )
 
-    def test_resolve_returns_prompt_parse_failure_when_recognition_reports_unmatched(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=[
-                ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Energy saving analysis tasks.",
-                    example="Analyze site power usage and suggest optimization.",
-                )
-            ],
-            prompt_result=PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario."),
-            recognition_result=ScenarioRecognitionResult(
-                matched=False,
-                scenario_code=None,
-                error_message="No matching scenario.",
+    result = orchestrator.resolve("Please analyze site A energy usage.")
+
+    assert result.success is False
+    assert result.reference is None
+    assert result.scenario is None
+    assert result.failure is not None
+    assert result.failure.stage == "prompt_parse"
+    assert result.failure.code == ErrorCatalog.SCENARIO_NOT_MATCHED.value
+    assert result.failure.message == (
+        f"The input does not match any known scenario: {recognition_result.error_message or 'Scenario recognition failed.'}"
+    )
+
+
+def test_resolve_returns_prompt_parse_failure_when_scenario_code_is_not_supported() -> None:
+    orchestrator = _build_orchestrator(
+        access=FakeResourceAccess(),
+        recognition_result=ScenarioRecognitionResult(
+            matched=True,
+            scenario_code="unknown_scenario",
+            error_message=None,
+        ),
+        language="en-US",
+    )
+
+    result = orchestrator.resolve("Please analyze site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.stage == "prompt_parse"
+    assert result.failure.code == ErrorCatalog.SCENARIO_NOT_MATCHED.value
+    assert result.failure.message == (
+        "The input does not match any known scenario: "
+        "Scenario recognition returned unsupported scenario_code: unknown_scenario"
+    )
+
+
+@pytest.mark.parametrize(
+    ("access", "expected_resource_path"),
+    [
+        (
+            FakeResourceAccess(
+                scenarios=A2ATError("Failed to read resource 'prompt_resources/scenarios/zh-CN/scenarios.json'.")
             ),
-            language="en-US",
-        )
-
-        result = orchestrator.resolve("Please analyze site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertIsNone(result.reference)
-        self.assertIsNone(result.scenario)
-        self.assertEqual(result.failure.stage, PROMPT_PARSE_STAGE)
-        self.assertEqual(result.failure.code, ErrorCatalog.SCENARIO_NOT_MATCHED.value)
-        self.assertEqual(result.failure.message, "The input does not match any known scenario: No matching scenario.")
-
-    def test_resolve_returns_prompt_parse_failure_when_scenario_code_is_not_supported(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=[
-                ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Energy saving analysis tasks.",
-                    example="Analyze site power usage and suggest optimization.",
+            "prompt_resources/scenarios/zh-CN/scenarios.json",
+        ),
+        (
+            FakeResourceAccess(
+                prompts=A2ATError(
+                    "Failed to read resource 'prompt_resources/prompts/scenario_recognition/zh-CN/system.md'."
                 )
-            ],
-            prompt_result=PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario."),
-            recognition_result=ScenarioRecognitionResult(
-                matched=True,
-                scenario_code="unknown_scenario",
-                error_message=None,
             ),
-            language="en-US",
-        )
+            "prompt_resources/prompts/scenario_recognition/zh-CN/system.md",
+        ),
+    ],
+    ids=["scenario-catalog-missing", "scenario-prompts-missing"],
+)
+def test_resolve_returns_preparation_failure_when_scenario_resources_cannot_be_loaded(
+    access: FakeResourceAccess,
+    expected_resource_path: str,
+) -> None:
+    orchestrator = _build_orchestrator(
+        access=access,
+        recognition_result=ScenarioRecognitionResult(
+            matched=True,
+            scenario_code="ran-energy-saving",
+            error_message=None,
+        ),
+    )
 
-        result = orchestrator.resolve("Please analyze site A energy usage.")
+    result = orchestrator.resolve("Please analyze site A energy usage.")
 
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.stage, PROMPT_PARSE_STAGE)
-        self.assertEqual(result.failure.code, ErrorCatalog.SCENARIO_NOT_MATCHED.value)
-        self.assertEqual(
-            result.failure.message,
-            "The input does not match any known scenario: "
-            "Scenario recognition returned unsupported scenario_code: unknown_scenario",
-        )
-
-    def test_resolve_returns_preparation_failure_when_scenario_resources_are_missing(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=[],
-            prompt_result=PromptResourceNotFoundError("Scenario recognition prompt resources are missing."),
-            recognition_result=ScenarioRecognitionResult(
-                matched=True,
-                scenario_code="ran-energy-saving",
-                error_message=None,
-            ),
-        )
-
-        result = orchestrator.resolve("Please analyze site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.stage, "preparation")
-        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
-        self.assertEqual(
-            result.failure.message,
-            "模板资源「Scenario recognition prompt resources are missing.」读取失败",
-        )
-
-    def test_resolve_returns_prompt_parse_failure_when_recognizer_raises_runtime_error(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=[
-                ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Energy saving analysis tasks.",
-                    example="Analyze site power usage and suggest optimization.",
-                )
-            ],
-            prompt_result=PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario."),
-            recognition_result=RuntimeError("llm transport down"),
-            language="en-US",
-        )
-
-        result = orchestrator.resolve("Please analyze site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.stage, PROMPT_PARSE_STAGE)
-        self.assertEqual(result.failure.code, ErrorCatalog.SCENARIO_NOT_MATCHED.value)
-        self.assertEqual(result.failure.message, "The input does not match any known scenario: llm transport down")
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.stage == "preparation"
+    assert result.failure.code == ErrorCatalog.TEMPLATE_LOAD_FAILED.value
+    assert result.failure.message == f"模板资源「{expected_resource_path}」读取失败"
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_resolve_returns_prompt_parse_failure_when_recognizer_raises_runtime_error() -> None:
+    orchestrator = _build_orchestrator(
+        access=FakeResourceAccess(),
+        recognition_result=RuntimeError("llm transport down"),
+        language="en-US",
+    )
+
+    result = orchestrator.resolve("Please analyze site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.stage == "prompt_parse"
+    assert result.failure.code == ErrorCatalog.SCENARIO_NOT_MATCHED.value
+    assert result.failure.message == "The input does not match any known scenario: llm transport down"

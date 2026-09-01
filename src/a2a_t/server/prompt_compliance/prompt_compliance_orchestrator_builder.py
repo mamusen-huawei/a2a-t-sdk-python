@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from a2a_t.common.prompt_resources import PromptResourceAccess
 from a2a_t.common.prompt_runtime import PromptRuntimeComponents, PromptRuntimeComponentsBuilder
 from a2a_t.config.models import A2ATConfig
 from a2a_t.prompt.analysis import ScenarioRecognizer, ScenarioResolutionOrchestrator, SlotExtractor
@@ -35,28 +36,43 @@ class PromptComplianceOrchestratorBuilder:
         *,
         config: A2ATConfig,
         llm_client: Any,
+        resource_access: PromptResourceAccess | None = None,
         runtime_components: PromptRuntimeComponents | None = None,
         logger: Any | None = None,
     ) -> PromptComplianceOrchestrator:
-        """Build a fully wired prompt compliance orchestrator."""
-        components = runtime_components or self._runtime_components_builder.build(config=config)
+        """Build a fully wired prompt compliance orchestrator.
+
+        Args:
+            config: resolved SDK configuration carrying the prompt runtime settings.
+            llm_client: LLM client used by scenario recognition, slot extraction and semantic
+                validation.
+            resource_access: optional access object overriding the one built from the config (the
+                injection seam mirroring ``llm_client``); ignored when ``runtime_components`` is
+                given.
+            runtime_components: optional prebuilt runtime components reused as-is.
+            logger: optional logger receiving the pipeline logs.
+
+        Returns:
+            the assembled prompt compliance orchestrator.
+        """
+        components = runtime_components or self._runtime_components_builder.build(
+            config=config,
+            resource_access=resource_access,
+        )
         scenario_recognizer = self._scenario_recognizer_cls(llm_client=llm_client)
         scenario_resolver = self._scenario_resolver_cls(
             config=config.prompt,
-            scenario_loader=components.scenario_loader,
-            prompt_resource_loader=components.prompt_resource_loader,
+            resource_access=components.resource_access,
             scenario_recognizer=scenario_recognizer,
         )
         extractor = self._slot_extractor_cls(llm_client=llm_client)
         semantic_validator = self._semantic_validator_cls(
             llm_client=llm_client,
-            prompt_resource_loader=components.prompt_resource_loader,
+            resource_access=components.resource_access,
         )
         return self._orchestrator_cls(  # type: ignore[no-any-return]
             scenario_resolver=scenario_resolver,
-            template_loader=components.template_loader,
-            slot_schema_loader=components.slot_schema_loader,
-            prompt_resource_loader=components.prompt_resource_loader,
+            resource_access=components.resource_access,
             extractor=extractor,
             validator=components.json_schema_slot_validator,
             semantic_validator=semantic_validator,

@@ -3,20 +3,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from a2a_t.common.prompt_resources import (
-    PromptResourceLoader,
-    PromptResourceNotFoundError,
-    PromptResourceParseError,
-    SlotSchemaLoader,
-    TemplateLoader,
-)
+from a2a_t.common.prompt_resources import PromptResourceAccess
+from a2a_t.common.prompt_resources.models import PromptMessages, slot_schema_from_json_schema
 from a2a_t.core.errors.catalog import ErrorCatalog, by_code
+from a2a_t.core.errors.exceptions import A2ATBusinessError, A2ATError
 from a2a_t.core.errors.input_limit import InputLimitConfig
 from a2a_t.core.errors.messages import render as render_error_message
 from a2a_t.llm.errors import is_response_contract_violation
 from a2a_t.prompt.analysis import ScenarioResolutionOrchestrator, SlotExtractor
 from a2a_t.prompt.analysis.errors import PromptAnalysisError
-from a2a_t.prompt.common.errors import PromptSourceError
 from a2a_t.prompt.common.models import PromptReference
 from a2a_t.prompt.validation.json_schema_slot_validator import JsonSchemaSlotValidator
 from a2a_t.prompt.validation.models import SlotValidationResult
@@ -48,6 +43,9 @@ _LEGACY_CODE_INVALID_VALUE = "invalid_value"
 
 #: Step label reported in ``llm.response_invalid`` when the slot-extraction step fails.
 _STEP_SLOT_EXTRACTION = "slot extraction"
+
+#: Analysis action whose system/user prompts drive slot extraction.
+_SLOT_EXTRACTION_ACTION = "slot_extraction"
 
 
 def resolve_slot_error_code(code: str) -> ErrorCatalog:
@@ -82,25 +80,19 @@ def resolve_slot_error_code(code: str) -> ErrorCatalog:
     return ErrorCatalog.SLOT_RULE_VIOLATION
 
 
-def _resource_path_of(error: PromptSourceError | PromptResourceNotFoundError | PromptResourceParseError) -> str:
-    """Return the resource path fact of one resource-loading error."""
-    for key in ("path", "locator"):
-        value = error.context.get(key)
-        if value is not None:
-            return str(value)
-    return str(error)
-
-
 class PromptComplianceOrchestrator:
-    """Coordinate prompt compliance validation flow on the server side."""
+    """Coordinate prompt compliance validation flow on the server side.
+
+    Every resource — template text, slot schema and the slot-extraction instruction prompts — is
+    loaded through the shared resource access layer (D31): templates and slot schemas follow the
+    configured source routing, the instruction prompts are always the packaged SDK contract.
+    """
 
     def __init__(
         self,
         *,
         scenario_resolver: ScenarioResolutionOrchestrator,
-        template_loader: TemplateLoader,
-        slot_schema_loader: SlotSchemaLoader,
-        prompt_resource_loader: PromptResourceLoader,
+        resource_access: PromptResourceAccess,
         extractor: SlotExtractor,
         validator: JsonSchemaSlotValidator,
         semantic_validator: SemanticSlotValidator | None = None,
@@ -109,9 +101,7 @@ class PromptComplianceOrchestrator:
         logger: Any | None = None,
     ) -> None:
         self._scenario_resolver = scenario_resolver
-        self._template_loader = template_loader
-        self._slot_schema_loader = slot_schema_loader
-        self._prompt_resource_loader = prompt_resource_loader
+        self._resource_access = resource_access
         self._extractor = extractor
         self._validator = validator
         self._semantic_validator = semantic_validator
@@ -157,43 +147,35 @@ class PromptComplianceOrchestrator:
         )
 
         try:
-            template_text = self._template_loader.load(reference=reference)
-        except PromptResourceNotFoundError:
-            return self._template_not_found_failure(reference)
-        except PromptResourceParseError as error:
-            return self._resource_read_failure(error)
-        except PromptSourceError as error:
-            return self._resource_read_failure(error)
-
-        try:
-            slot_json_schema = self._slot_schema_loader.load_json_schema(reference=reference)
-        except PromptResourceNotFoundError:
-            return self._slot_schema_not_found_failure(reference)
-        except PromptResourceParseError as error:
-            return self._resource_read_failure(error)
-        except PromptSourceError as error:
-            return self._resource_read_failure(error)
-
-        try:
-            slot_schema = self._slot_schema_loader.load_slot_schema(reference=reference)
-        except PromptResourceNotFoundError:
-            return self._slot_schema_not_found_failure(reference)
-        except PromptResourceParseError as error:
-            return self._resource_read_failure(error)
-        except PromptSourceError as error:
-            return self._resource_read_failure(error)
-
-        try:
-            slot_prompts = self._prompt_resource_loader.load(
-                analysis_action="slot_extraction",
-                language=reference.language,
+            template_text = self._resource_access.template_text(reference.scenario_code, reference.language)
+        except A2ATBusinessError as error:
+            return self._catalog_failure(
+                entry=error.code,
+                facts=error.facts,
+                stage=PREPARATION_STAGE,
             )
-        except PromptResourceNotFoundError as error:
-            return self._resource_read_failure(error)
-        except PromptResourceParseError as error:
-            return self._resource_read_failure(error)
-        except PromptSourceError as error:
-            return self._resource_read_failure(error)
+        except A2ATError:
+            return self._resource_read_failure(reference)
+
+        try:
+            slot_json_schema = self._resource_access.slot_schema(reference.scenario_code, reference.language)
+            slot_schema = slot_schema_from_json_schema(
+                slot_json_schema,
+                scenario_code=reference.scenario_code,
+            )
+        except A2ATBusinessError as error:
+            return self._catalog_failure(
+                entry=error.code,
+                facts=error.facts,
+                stage=PREPARATION_STAGE,
+            )
+        except A2ATError:
+            return self._resource_read_failure(reference)
+
+        try:
+            slot_prompts = self._load_slot_extraction_prompts(reference)
+        except A2ATError:
+            return self._resource_read_failure(reference)
 
         try:
             extraction_result = self._extractor.extract(
@@ -258,30 +240,26 @@ class PromptComplianceOrchestrator:
 
         return self._finalize_result(PromptComplianceResult(success=True))
 
-    def _template_not_found_failure(self, reference: PromptReference) -> PromptComplianceResult:
-        """Build the ``template.not_found`` failure for one scenario reference."""
-        return self._catalog_failure(
-            entry=ErrorCatalog.TEMPLATE_NOT_FOUND,
-            facts={"template_uri": reference.scenario_code, "language": reference.language},
-            stage=PREPARATION_STAGE,
-        )
-
-    def _slot_schema_not_found_failure(self, reference: PromptReference) -> PromptComplianceResult:
-        """Build the ``slot.schema_not_found`` failure for one scenario reference."""
-        return self._catalog_failure(
-            entry=ErrorCatalog.SLOT_SCHEMA_NOT_FOUND,
-            facts={"template_uri": reference.scenario_code, "language": reference.language},
-            stage=PREPARATION_STAGE,
+    def _load_slot_extraction_prompts(self, reference: PromptReference) -> PromptMessages:
+        """Load the packaged slot-extraction instruction prompts for one reference."""
+        return PromptMessages(
+            system_prompt=self._resource_access.load_prompt(_SLOT_EXTRACTION_ACTION, reference.language, "system.md"),
+            user_prompt=self._resource_access.load_prompt(_SLOT_EXTRACTION_ACTION, reference.language, "user.md"),
         )
 
     def _resource_read_failure(
         self,
-        error: PromptSourceError | PromptResourceNotFoundError | PromptResourceParseError,
+        reference: PromptReference,
     ) -> PromptComplianceResult:
-        """Build the ``infra.resource_read_failed`` failure for one resource-loading error."""
+        """Build the ``infra.resource_read_failed`` failure for one resource-loading error.
+
+        The resource path fact identifies the template addressed by the resolved reference (Java
+        parity: the orchestrator catch points report the scenario resource, not the raw reader
+        error).
+        """
         return self._catalog_failure(
             entry=ErrorCatalog.INFRA_RESOURCE_READ_FAILED,
-            facts={"resource_path": _resource_path_of(error)},
+            facts={"resource_path": reference.scenario_code},
             stage=PREPARATION_STAGE,
         )
 

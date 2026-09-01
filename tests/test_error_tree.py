@@ -14,11 +14,6 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 
-from a2a_t.common.prompt_resources.errors import (
-    PromptResourceError,
-    PromptResourceNotFoundError,
-    PromptResourceParseError,
-)
 from a2a_t.config.errors import ConfigError, ConfigFileNotFoundError
 from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.core.errors.exceptions import A2ATBusinessError, A2ATError
@@ -35,9 +30,6 @@ from a2a_t.prompt.task_rendering.errors import TaskPromptRenderError
 
 #: (exception type, expected code) for the plain A2ATError families.
 _A2AT_ERROR_FAMILIES = [
-    PromptResourceError,
-    PromptResourceNotFoundError,
-    PromptResourceParseError,
     PromptLoaderError,
     PromptSourceError,
     PromptConfigError,
@@ -62,9 +54,6 @@ def test_flat_error_families_are_reparented_onto_the_a2at_root(exception_type: t
         (LLMRuntimeError, ErrorCatalog.LLM_INVOCATION_FAILED),
         (ConfigError, ErrorCatalog.INFRA_CONFIG_INVALID),
         (ConfigFileNotFoundError, ErrorCatalog.INFRA_CONFIG_INVALID),
-        (PromptResourceError, ErrorCatalog.INFRA_RESOURCE_READ_FAILED),
-        (PromptResourceNotFoundError, ErrorCatalog.INFRA_RESOURCE_READ_FAILED),
-        (PromptResourceParseError, ErrorCatalog.INFRA_RESOURCE_READ_FAILED),
         (PromptLoaderError, ErrorCatalog.INFRA_RESOURCE_READ_FAILED),
         (PromptSourceError, ErrorCatalog.INFRA_RESOURCE_READ_FAILED),
     ],

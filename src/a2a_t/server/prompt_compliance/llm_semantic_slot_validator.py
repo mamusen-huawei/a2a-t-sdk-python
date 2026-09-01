@@ -3,16 +3,31 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from a2a_t.common.prompt_resources import PromptResourceLoader
+from a2a_t.common.prompt_resources import PackagedPromptResourceAccess, PromptResourceAccess
 
 from .models import SemanticValidationError, SemanticValidationResult
 from .semantic_validator import SemanticSlotValidator
 
+#: Analysis action whose system/user prompts drive semantic slot validation.
+_SEMANTIC_VALIDATION_ACTION = "semantic_validation"
+
 
 class LLMSemanticSlotValidator(SemanticSlotValidator):
-    def __init__(self, *, llm_client: Any, prompt_resource_loader: PromptResourceLoader | None = None) -> None:
+    """Validate extracted slot values semantically with an LLM-backed structured call.
+
+    The semantic-validation instruction prompts are loaded through the shared resource access
+    layer; ``prompts/**`` is package-fixed by the D31 routing table, so a local copy under a
+    configured local root is ignored and the packaged SDK contract is always used.
+    """
+
+    def __init__(
+        self,
+        *,
+        llm_client: Any,
+        resource_access: PromptResourceAccess | None = None,
+    ) -> None:
         self._llm_client = llm_client
-        self._prompt_resource_loader = prompt_resource_loader or PromptResourceLoader()
+        self._resource_access = resource_access if resource_access is not None else PackagedPromptResourceAccess()
 
     def validate(
         self,
@@ -22,10 +37,8 @@ class LLMSemanticSlotValidator(SemanticSlotValidator):
         extracted_slots: dict[str, str | None],
     ) -> SemanticValidationResult:
         try:
-            prompt_messages = self._prompt_resource_loader.load(
-                analysis_action="semantic_validation",
-                language=language,
-            )
+            system_prompt = self._resource_access.load_prompt(_SEMANTIC_VALIDATION_ACTION, language, "system.md")
+            user_prompt = self._resource_access.load_prompt(_SEMANTIC_VALIDATION_ACTION, language, "user.md")
         except Exception as error:
             return SemanticValidationResult(
                 passed=False,
@@ -40,8 +53,8 @@ class LLMSemanticSlotValidator(SemanticSlotValidator):
         try:
             response = self._llm_client.structured(
                 messages=self._build_messages(
-                    system_prompt=prompt_messages.system_prompt,
-                    user_prompt=prompt_messages.user_prompt,
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
                     slot_json_schema=slot_json_schema,
                     extracted_slots=extracted_slots,
                 ),

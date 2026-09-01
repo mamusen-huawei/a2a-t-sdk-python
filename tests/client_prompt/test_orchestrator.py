@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import sys
-import unittest
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -18,9 +18,9 @@ from a2a_t.client.prompt_generation.generation_constants import (
     RENDER_STAGE,
     SCENARIO_STAGE,
 )
-from a2a_t.common.prompt_resources.models import PromptMessages, SlotDefinition, SlotSchema
 from a2a_t.config.models import PromptRuntimeConfig
 from a2a_t.core.errors.catalog import ErrorCatalog
+from a2a_t.core.errors.exceptions import A2ATError
 from a2a_t.llm.errors import LLMConfigError, LLMRuntimeError
 from a2a_t.prompt.analysis.errors import PromptAnalysisError
 from a2a_t.prompt.analysis.models import (
@@ -29,8 +29,8 @@ from a2a_t.prompt.analysis.models import (
     ScenarioResolutionResult,
     SlotExtractionResult,
 )
-from a2a_t.prompt.common.errors import PromptSourceError
 from a2a_t.prompt.common.models import PromptReference
+from tests.support import FakePromptResourceAccess
 
 #: Catalog codes the generation pipeline emits at its failure boundaries (Java orchestrator parity).
 GENERATION_FAILURE_CODES = (
@@ -45,75 +45,38 @@ GENERATION_FAILURE_CODES = (
     ErrorCatalog.TEMPLATE_RENDER_FAILED,
 )
 
+_SCENARIO = ScenarioDefinition(
+    scenario_code="ran-energy-saving",
+    scenario_name="Energy Saving",
+    description="Used for energy saving analysis.",
+    example="Analyze site power usage and suggest optimization.",
+)
+
+_SLOT_JSON_SCHEMA: dict[str, object] = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "site": {
+            "type": "string",
+            "description": "Site name",
+            "examples": ["Site A"],
+            "x-a2at-value-constraint": "Must be a concrete site name.",
+        },
+        "additional_notes": {
+            "type": "string",
+            "description": "Additional notes",
+            "examples": ["Focus on power system"],
+        },
+    },
+    "required": ["site"],
+}
+
 
 @pytest.mark.parametrize("entry", GENERATION_FAILURE_CODES, ids=lambda entry: entry.value)
 def test_generation_failure_codes_are_closed_catalog_members(entry: ErrorCatalog) -> None:
     assert ErrorCatalog(entry.value) is entry
     assert entry.value.count(".") == 1
     assert entry.value == entry.value.lower()
-
-
-class FakeScenarioLoader:
-    def load(self, *, language: str) -> list[ScenarioDefinition]:
-        return [
-            ScenarioDefinition(
-                scenario_code="ran-energy-saving",
-                scenario_name="Energy Saving",
-                description="Used for energy saving analysis.",
-                example="Analyze site power usage and suggest optimization.",
-            )
-        ]
-
-
-class FakePromptResourceLoader:
-    def load(self, *, analysis_action: str, language: str) -> PromptMessages:
-        if analysis_action == "scenario_recognition":
-            return PromptMessages(system_prompt="Identify scenario.", user_prompt="Choose scenario.")
-        return PromptMessages(system_prompt="Extract slots.", user_prompt="Return slots.")
-
-
-class FakeTemplateLoader:
-    def __init__(self) -> None:
-        self.last_reference: PromptReference | None = None
-
-    def load(self, *, reference: PromptReference) -> str:
-        self.last_reference = reference
-        return "Site: {site}\nNotes: {additional_notes}"
-
-
-class FakeSlotSchemaLoader:
-    def __init__(self) -> None:
-        self.last_reference: PromptReference | None = None
-
-    def load(self, *, reference: PromptReference) -> SlotSchema:
-        self.last_reference = reference
-        return SlotSchema(
-            scenario_code="ran-energy-saving",
-            slots=[
-                SlotDefinition(
-                    name="site",
-                    required=True,
-                    description="Site name",
-                    example="Site A",
-                    value_constraint="Must be a concrete site name.",
-                    type="string",
-                    allowed_values=None,
-                    range=None,
-                    pattern=None,
-                ),
-                SlotDefinition(
-                    name="additional_notes",
-                    required=False,
-                    description="Additional notes",
-                    example="Focus on power system",
-                    value_constraint="Free-form notes.",
-                    type="string",
-                    allowed_values=None,
-                    range=None,
-                    pattern=None,
-                ),
-            ],
-        )
 
 
 class FakeScenarioResolver:
@@ -131,10 +94,12 @@ class FakeSlotExtractor:
     def __init__(self, result: SlotExtractionResult) -> None:
         self._result = result
         self.last_reference: PromptReference | None = None
+        self.last_kwargs: dict[str, Any] = {}
         self.last_raw_response_content = '{"slots": {}}'
 
     def extract(self, **kwargs: object) -> SlotExtractionResult:
-        self.last_reference = kwargs.get("reference")
+        self.last_reference = kwargs.get("reference")  # type: ignore[assignment]
+        self.last_kwargs = dict(kwargs)
         return self._result
 
 
@@ -191,319 +156,269 @@ class FakePromptRuntimeConfig(PromptRuntimeConfig):
         self.prompt_generation_debug = prompt_generation_debug
 
 
-class PromptGenerationOrchestratorTest(unittest.TestCase):
-    def _build_orchestrator(
-        self,
-        *,
-        scenario_result: ScenarioResolutionResult,
-        extraction_result: SlotExtractionResult,
-        template_loader: FakeTemplateLoader | None = None,
-        slot_schema_loader: FakeSlotSchemaLoader | None = None,
-        prompt_resource_loader: FakePromptResourceLoader | None = None,
-        debug_enabled: bool = False,
-        logger: FakeLogger | None = None,
-        slot_extractor: object | None = None,
-        renderer: object | None = None,
-    ):
-        from a2a_t.client.prompt_generation.prompt_generation_orchestrator import PromptGenerationOrchestrator
+def _success_resolution() -> ScenarioResolutionResult:
+    return ScenarioResolutionResult(
+        success=True,
+        reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
+        scenario=_SCENARIO,
+    )
 
-        self.template_loader = template_loader or FakeTemplateLoader()
-        self.slot_schema_loader = slot_schema_loader or FakeSlotSchemaLoader()
-        self.prompt_resource_loader = prompt_resource_loader or FakePromptResourceLoader()
-        self.slot_extractor = slot_extractor or FakeSlotExtractor(extraction_result)
-        self.logger = logger if logger is not None else FakeLogger()
 
-        return PromptGenerationOrchestrator(
-            config=FakePromptRuntimeConfig(
-                language="en-US",
-                prompt_generation_debug=debug_enabled,
-            ),
-            prompt_resource_loader=self.prompt_resource_loader,
-            template_loader=self.template_loader,
-            slot_schema_loader=self.slot_schema_loader,
-            scenario_resolver=FakeScenarioResolver(scenario_result),
-            slot_extractor=self.slot_extractor,
-            renderer=renderer,
-            logger=self.logger,
-        )
+def _build_orchestrator(
+    *,
+    scenario_result: ScenarioResolutionResult | None = None,
+    extraction_result: SlotExtractionResult | None = None,
+    resource_access: FakePromptResourceAccess | None = None,
+    debug_enabled: bool = False,
+    logger: FakeLogger | None = None,
+    slot_extractor: object | None = None,
+    renderer: object | None = None,
+) -> Any:
+    from a2a_t.client.prompt_generation.prompt_generation_orchestrator import PromptGenerationOrchestrator
 
-    def test_orchestrator_requires_prompt_runtime_config(self) -> None:
-        from a2a_t.client.prompt_generation.prompt_generation_orchestrator import PromptGenerationOrchestrator
+    return PromptGenerationOrchestrator(
+        config=FakePromptRuntimeConfig(
+            language="en-US",
+            prompt_generation_debug=debug_enabled,
+        ),
+        resource_access=resource_access
+        or FakePromptResourceAccess(
+            template_text="Site: {site}\nNotes: {additional_notes}",
+            slot_json_schema=_SLOT_JSON_SCHEMA,
+            system_prompt="Extract slots.",
+            user_prompt="Return slots.",
+        ),
+        scenario_resolver=FakeScenarioResolver(scenario_result or _success_resolution()),
+        slot_extractor=slot_extractor
+        or FakeSlotExtractor(extraction_result or SlotExtractionResult(slots={}, slot_errors=[])),
+        renderer=renderer,
+        logger=logger,
+    )
 
-        with self.assertRaises(TypeError):
-            PromptGenerationOrchestrator(
-                config=object(),
-                prompt_resource_loader=FakePromptResourceLoader(),
-                template_loader=FakeTemplateLoader(),
-                slot_schema_loader=FakeSlotSchemaLoader(),
-                scenario_resolver=FakeScenarioResolver(
-                    ScenarioResolutionResult(
-                        success=True,
-                        reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                        scenario=ScenarioDefinition(
-                            scenario_code="ran-energy-saving",
-                            scenario_name="Energy Saving",
-                            description="Used for energy saving analysis.",
-                            example="Analyze site power usage and suggest optimization.",
-                        ),
-                    )
-                ),
-                slot_extractor=FakeSlotExtractor(
-                    SlotExtractionResult(
-                        slots={"site": "Site A", "additional_notes": None},
-                        slot_errors=[],
-                    )
-                ),
-            )
 
-    def test_generate_returns_success_result(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=True,
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                scenario=ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Used for energy saving analysis.",
-                    example="Analyze site power usage and suggest optimization.",
-                ),
-            ),
-            extraction_result=SlotExtractionResult(
-                slots={"site": "Site A", "additional_notes": None},
-                slot_errors=[],
-            ),
-        )
+def test_orchestrator_requires_prompt_runtime_config() -> None:
+    from a2a_t.client.prompt_generation.prompt_generation_orchestrator import PromptGenerationOrchestrator
 
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertTrue(result.success)
-        self.assertEqual(
-            self.template_loader.last_reference,
-            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-        )
-        self.assertEqual(
-            self.slot_schema_loader.last_reference,
-            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-        )
-        self.assertEqual(
-            self.slot_extractor.last_reference,
-            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-        )
-        self.assertIsNone(result.failure)
-        self.assertEqual(result.prompt_text, "Site: Site A\nNotes: ")
-
-    def test_orchestrator_uses_explicit_logger_even_when_logger_is_falsy(self) -> None:
-        logger = FalsyLogger()
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=True,
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                scenario=ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Used for energy saving analysis.",
-                    example="Analyze site power usage and suggest optimization.",
-                ),
-            ),
-            extraction_result=SlotExtractionResult(
-                slots={"site": "Site A", "additional_notes": None},
-                slot_errors=[],
-            ),
-            logger=logger,
-        )
-
-        orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertIn("prompt_generation_started", logger.info_calls)
-
-    def test_generate_returns_success_result_when_extracted_slots_are_missing(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=True,
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                scenario=ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Used for energy saving analysis.",
-                    example="Analyze site power usage and suggest optimization.",
-                ),
-            ),
-            extraction_result=SlotExtractionResult(
-                slots={"site": None, "additional_notes": None},
-                slot_errors=[],
-            ),
-        )
-
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertTrue(result.success)
-        self.assertEqual(result.prompt_text, "Site: \nNotes: ")
-        self.assertIsNone(result.failure)
-
-    def test_generate_returns_scenario_failure_when_resolution_fails(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=False,
-                failure=ScenarioResolutionFailure(
-                    code=ErrorCatalog.SCENARIO_NOT_MATCHED.value,
-                    message="The input does not match any known scenario: No matching scenario.",
-                    stage=SCENARIO_STAGE,
-                ),
-            ),
-            extraction_result=SlotExtractionResult(slots={}, slot_errors=[]),
-        )
-
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertIsNone(result.prompt_text)
-        self.assertEqual(result.failure.code, ErrorCatalog.SCENARIO_NOT_MATCHED.value)
-        self.assertEqual(result.failure.stage, SCENARIO_STAGE)
-
-    def test_generate_returns_scenario_failure_when_scenario_resources_are_invalid(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=False,
-                failure=ScenarioResolutionFailure(
-                    code=ErrorCatalog.TEMPLATE_LOAD_FAILED.value,
-                    message="Failed to read template resource 'scenario resources are invalid'",
-                    stage=SCENARIO_STAGE,
-                ),
-            ),
-            extraction_result=SlotExtractionResult(
-                slots={"site": "Site A", "additional_notes": None},
-                slot_errors=[],
-            ),
-        )
-
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
-        self.assertEqual(result.failure.stage, SCENARIO_STAGE)
-        self.assertEqual(result.failure.message, "Failed to read template resource 'scenario resources are invalid'")
-
-    def test_generate_returns_generation_failure_when_generation_resource_access_fails(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=True,
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                scenario=ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Used for energy saving analysis.",
-                    example="Analyze site power usage and suggest optimization.",
-                ),
-            ),
-            extraction_result=SlotExtractionResult(
-                slots={"site": "Site A", "additional_notes": None},
-                slot_errors=[],
-            ),
-            template_loader=FakeTemplateLoader(),
-            slot_schema_loader=FakeSlotSchemaLoader(),
-            prompt_resource_loader=FakePromptResourceLoader(),
-        )
-
-        def raising_load(*, reference: PromptReference) -> str:
-            raise PromptSourceError("generation resource path escapes local root")
-
-        orchestrator._template_loader.load = raising_load  # type: ignore[method-assign]
-
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
-        self.assertEqual(result.failure.stage, "preparation")
-        self.assertEqual(result.failure.message, "Failed to read template resource 'ran-energy-saving'")
-
-    def test_generate_returns_generation_failure_when_slot_extraction_payload_is_invalid(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=True,
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                scenario=ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Used for energy saving analysis.",
-                    example="Analyze site power usage and suggest optimization.",
-                ),
-            ),
-            extraction_result=SlotExtractionResult(slots={}, slot_errors=[]),
-            slot_extractor=RaisingSlotExtractor(PromptAnalysisError("slot extraction returned invalid JSON")),
-        )
-
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.code, ErrorCatalog.LLM_RESPONSE_INVALID.value)
-        self.assertEqual(result.failure.stage, GENERATION_STAGE)
-        self.assertEqual(result.failure.message, "The LLM response is invalid (step: slot extraction); please retry")
-
-    def test_generate_returns_generation_failure_when_slot_extraction_runtime_fails(self) -> None:
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=True,
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                scenario=ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Used for energy saving analysis.",
-                    example="Analyze site power usage and suggest optimization.",
-                ),
-            ),
-            extraction_result=SlotExtractionResult(slots={}, slot_errors=[]),
-            slot_extractor=RaisingSlotExtractor(RuntimeError("llm transport down")),
-        )
-
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.code, ErrorCatalog.LLM_INVOCATION_FAILED.value)
-        self.assertEqual(result.failure.stage, GENERATION_STAGE)
-        self.assertEqual(result.failure.message, "LLM invocation failed (provider {provider}): llm transport down")
-
-    def test_generate_returns_render_failure_when_renderer_rejects_slots(self) -> None:
-        from a2a_t.prompt.task_rendering.errors import TaskPromptRenderError
-
-        orchestrator = self._build_orchestrator(
-            scenario_result=ScenarioResolutionResult(
-                success=True,
-                reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                scenario=ScenarioDefinition(
-                    scenario_code="ran-energy-saving",
-                    scenario_name="Energy Saving",
-                    description="Used for energy saving analysis.",
-                    example="Analyze site power usage and suggest optimization.",
-                ),
-            ),
-            extraction_result=SlotExtractionResult(
-                slots={"site": "Site A", "additional_notes": None},
-                slot_errors=[],
-            ),
-            renderer=FakeRenderer(TaskPromptRenderError("Template references unknown slot: time_range")),
-        )
-
-        result = orchestrator.generate("Analyze Site A energy usage.")
-
-        self.assertFalse(result.success)
-        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_RENDER_FAILED.value)
-        self.assertEqual(result.failure.stage, RENDER_STAGE)
-        self.assertEqual(
-            result.failure.message,
-            "Failed to render template 'ran-energy-saving': Template references unknown slot: time_range",
+    with pytest.raises(TypeError):
+        PromptGenerationOrchestrator(
+            config=object(),  # type: ignore[arg-type]
+            resource_access=FakePromptResourceAccess(),
+            scenario_resolver=FakeScenarioResolver(_success_resolution()),
+            slot_extractor=FakeSlotExtractor(SlotExtractionResult(slots={}, slot_errors=[])),
         )
 
 
-_SUCCESS_RESOLUTION = ScenarioResolutionResult(
-    success=True,
-    reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-    scenario=ScenarioDefinition(
-        scenario_code="ran-energy-saving",
-        scenario_name="Energy Saving",
-        description="Used for energy saving analysis.",
-        example="Analyze site power usage and suggest optimization.",
-    ),
+def test_generate_returns_success_result() -> None:
+    access = FakePromptResourceAccess(
+        template_text="Site: {site}\nNotes: {additional_notes}",
+        slot_json_schema=_SLOT_JSON_SCHEMA,
+        system_prompt="Extract slots.",
+        user_prompt="Return slots.",
+    )
+    extractor = FakeSlotExtractor(
+        SlotExtractionResult(slots={"site": "Site A", "additional_notes": None}, slot_errors=[])
+    )
+    orchestrator = _build_orchestrator(resource_access=access, extraction_result=None, slot_extractor=extractor)
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is True
+    assert access.template_calls == [("ran-energy-saving", "en-US")]
+    assert access.slot_schema_calls == [("ran-energy-saving", "en-US")]
+    assert access.prompt_calls == [
+        ("slot_extraction", "en-US", "system.md"),
+        ("slot_extraction", "en-US", "user.md"),
+    ]
+    assert extractor.last_reference == PromptReference(scenario_code="ran-energy-saving", language="en-US")
+    assert extractor.last_kwargs["system_prompt"] == "Extract slots."
+    assert extractor.last_kwargs["user_prompt"] == "Return slots."
+    assert result.failure is None
+    assert result.prompt_text == "Site: Site A\nNotes: "
+
+
+def test_orchestrator_uses_explicit_logger_even_when_logger_is_falsy() -> None:
+    logger = FalsyLogger()
+    orchestrator = _build_orchestrator(logger=logger)
+
+    orchestrator.generate("Analyze Site A energy usage.")
+
+    assert "prompt_generation_started" in logger.info_calls
+
+
+def test_generate_returns_success_result_when_extracted_slots_are_missing() -> None:
+    orchestrator = _build_orchestrator(
+        extraction_result=SlotExtractionResult(slots={"site": None, "additional_notes": None}, slot_errors=[])
+    )
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is True
+    assert result.prompt_text == "Site: \nNotes: "
+    assert result.failure is None
+
+
+def test_generate_returns_scenario_failure_when_resolution_fails() -> None:
+    orchestrator = _build_orchestrator(
+        scenario_result=ScenarioResolutionResult(
+            success=False,
+            failure=ScenarioResolutionFailure(
+                code=ErrorCatalog.SCENARIO_NOT_MATCHED.value,
+                message="The input does not match any known scenario: No matching scenario.",
+                stage=SCENARIO_STAGE,
+            ),
+        ),
+    )
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.prompt_text is None
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.SCENARIO_NOT_MATCHED.value
+    assert result.failure.stage == SCENARIO_STAGE
+
+
+def test_generate_returns_scenario_failure_when_scenario_resources_are_invalid() -> None:
+    orchestrator = _build_orchestrator(
+        scenario_result=ScenarioResolutionResult(
+            success=False,
+            failure=ScenarioResolutionFailure(
+                code=ErrorCatalog.TEMPLATE_LOAD_FAILED.value,
+                message="Failed to read template resource 'scenario resources are invalid'",
+                stage=SCENARIO_STAGE,
+            ),
+        ),
+    )
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.TEMPLATE_LOAD_FAILED.value
+    assert result.failure.stage == SCENARIO_STAGE
+    assert result.failure.message == "Failed to read template resource 'scenario resources are invalid'"
+
+
+def test_generate_returns_generation_failure_when_generation_resource_access_fails() -> None:
+    access = FakePromptResourceAccess(template_text=A2ATError("template resource read failed"))
+    orchestrator = _build_orchestrator(resource_access=access)
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.TEMPLATE_LOAD_FAILED.value
+    assert result.failure.stage == "preparation"
+    assert result.failure.message == "Failed to read template resource 'ran-energy-saving'"
+
+
+@pytest.mark.parametrize(
+    ("template_failure", "expected_code", "expected_message"),
+    [
+        (
+            ErrorCatalog.TEMPLATE_NOT_FOUND,
+            "template.not_found",
+            "Template 'ran-energy-saving' does not support language 'en-US'; "
+            "check the template URI and language setting",
+        ),
+        (
+            ErrorCatalog.SLOT_SCHEMA_NOT_FOUND,
+            "slot.schema_not_found",
+            "Template 'ran-energy-saving' is missing its slot schema (language 'en-US')",
+        ),
+    ],
+    ids=["missing-template", "missing-slot-schema"],
 )
+def test_generate_surfaces_the_access_layer_business_codes(
+    template_failure: ErrorCatalog,
+    expected_code: str,
+    expected_message: str,
+) -> None:
+    from a2a_t.core.errors.exceptions import A2ATBusinessError
+
+    access = FakePromptResourceAccess(
+        template_text=A2ATBusinessError(
+            template_failure,
+            {"template_uri": "ran-energy-saving", "language": "en-US"},
+        )
+        if template_failure is ErrorCatalog.TEMPLATE_NOT_FOUND
+        else "Site: {site}",
+        slot_json_schema=A2ATBusinessError(
+            template_failure,
+            {"template_uri": "ran-energy-saving", "language": "en-US"},
+        )
+        if template_failure is ErrorCatalog.SLOT_SCHEMA_NOT_FOUND
+        else _SLOT_JSON_SCHEMA,
+    )
+    orchestrator = _build_orchestrator(resource_access=access)
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == expected_code
+    assert result.failure.stage == "preparation"
+    assert result.failure.message == expected_message
+
+
+def test_generate_returns_generation_failure_when_slot_extraction_prompts_are_missing() -> None:
+    access = FakePromptResourceAccess(system_prompt=A2ATError("prompt resource read failed"))
+    orchestrator = _build_orchestrator(resource_access=access)
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.TEMPLATE_LOAD_FAILED.value
+    assert result.failure.stage == "preparation"
+    assert result.failure.message == (
+        "Failed to read template resource 'prompt_resources/prompts/slot_extraction/en-US/system.md'"
+    )
+
+
+def test_generate_returns_generation_failure_when_slot_extraction_payload_is_invalid() -> None:
+    orchestrator = _build_orchestrator(
+        slot_extractor=RaisingSlotExtractor(PromptAnalysisError("slot extraction returned invalid JSON"))
+    )
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.LLM_RESPONSE_INVALID.value
+    assert result.failure.stage == GENERATION_STAGE
+    assert result.failure.message == "The LLM response is invalid (step: slot extraction); please retry"
+
+
+def test_generate_returns_generation_failure_when_slot_extraction_runtime_fails() -> None:
+    orchestrator = _build_orchestrator(slot_extractor=RaisingSlotExtractor(RuntimeError("llm transport down")))
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.LLM_INVOCATION_FAILED.value
+    assert result.failure.stage == GENERATION_STAGE
+    assert result.failure.message == "LLM invocation failed (provider {provider}): llm transport down"
+
+
+def test_generate_returns_render_failure_when_renderer_rejects_slots() -> None:
+    from a2a_t.prompt.task_rendering.errors import TaskPromptRenderError
+
+    orchestrator = _build_orchestrator(
+        extraction_result=SlotExtractionResult(slots={"site": "Site A", "additional_notes": None}, slot_errors=[]),
+        renderer=FakeRenderer(TaskPromptRenderError("Template references unknown slot: time_range")),
+    )
+
+    result = orchestrator.generate("Analyze Site A energy usage.")
+
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.TEMPLATE_RENDER_FAILED.value
+    assert result.failure.stage == RENDER_STAGE
+    assert result.failure.message == (
+        "Failed to render template 'ran-energy-saving': Template references unknown slot: time_range"
+    )
 
 
 @pytest.mark.parametrize(
@@ -537,16 +452,7 @@ def test_generate_translates_llm_step_failures_to_catalog_codes(
     expected_code: ErrorCatalog,
     expected_message: str,
 ) -> None:
-    from a2a_t.client.prompt_generation.prompt_generation_orchestrator import PromptGenerationOrchestrator
-
-    orchestrator = PromptGenerationOrchestrator(
-        config=FakePromptRuntimeConfig(language="en-US"),
-        prompt_resource_loader=FakePromptResourceLoader(),
-        template_loader=FakeTemplateLoader(),
-        slot_schema_loader=FakeSlotSchemaLoader(),
-        scenario_resolver=FakeScenarioResolver(_SUCCESS_RESOLUTION),
-        slot_extractor=RaisingSlotExtractor(error),
-    )
+    orchestrator = _build_orchestrator(slot_extractor=RaisingSlotExtractor(error))
 
     result = orchestrator.generate("Analyze Site A energy usage.")
 
@@ -555,7 +461,3 @@ def test_generate_translates_llm_step_failures_to_catalog_codes(
     assert result.failure.code == expected_code.value
     assert result.failure.stage == GENERATION_STAGE
     assert result.failure.message == expected_message
-
-
-if __name__ == "__main__":
-    unittest.main()

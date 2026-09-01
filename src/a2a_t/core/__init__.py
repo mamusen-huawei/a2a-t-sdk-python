@@ -2,13 +2,21 @@
 
 Provides template URI addressing (:class:`~a2a_t.core.template_uri.TemplateUri`
 and the dual-spelled built-in template constants), the path-segment guards used
-by every resource lookup, prompt resource keys and the content validation
-pipeline. The error catalog, message rendering and exception tree live in the
-subpackage :mod:`a2a_t.core.errors` and are intentionally not re-exported here.
+by every resource lookup, prompt resource keys, the metadata model of generated
+messages and the content validation pipeline. The error catalog, message
+rendering and exception tree live in the subpackage :mod:`a2a_t.core.errors`
+and are intentionally not re-exported here.
 """
 
 from __future__ import annotations
 
+from a2a_t.core.metadata import (
+    NEGOTIATION_CONTEXT_METADATA_KEY,
+    TEMPLATE_URI_METADATA_KEY,
+    MetadataContent,
+    NegotiationContext,
+    NegotiationPerformative,
+)
 from a2a_t.core.path_segments import (
     is_simple_segment,
     require_simple_relative_path,
@@ -32,11 +40,16 @@ from a2a_t.core.validation_pipeline import (
 
 __all__ = [
     "DEFAULT_TEMPLATE_VERSION",
+    "NEGOTIATION_CONTEXT_METADATA_KEY",
     "PromptResourceKey",
     "RETRYABLE_ERROR_CODES",
+    "TEMPLATE_URI_METADATA_KEY",
     "ContentValidationError",
     "ContentValidator",
     "FilledParamData",
+    "MetadataContent",
+    "NegotiationContext",
+    "NegotiationPerformative",
     "RuleChecker",
     "SemanticValidator",
     "SlotValidationError",

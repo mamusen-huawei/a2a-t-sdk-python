@@ -1,25 +1,19 @@
+"""Runtime behavior of the server prompt compliance orchestrator on the D31 access layer."""
+
 from __future__ import annotations
 
-import sys
-import unittest
-from pathlib import Path
+from typing import Any
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
+import pytest
 
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-
-from a2a_t.common.prompt_resources.errors import PromptResourceNotFoundError, PromptResourceParseError
-from a2a_t.common.prompt_resources.models import PromptMessages, ScenarioDefinition, SlotDefinition, SlotSchema
+from a2a_t.common.prompt_resources.models import ScenarioDefinition
 from a2a_t.core.errors.catalog import ErrorCatalog
+from a2a_t.core.errors.exceptions import A2ATBusinessError, A2ATError
 from a2a_t.prompt.analysis.models import (
     ScenarioResolutionFailure,
     ScenarioResolutionResult,
     SlotExtractionResult,
 )
-from a2a_t.prompt.common.errors import PromptSourceError
 from a2a_t.prompt.common.models import PromptReference
 from a2a_t.prompt.validation.constants import INVALID_VALUE, MISSING_INPUT
 from a2a_t.prompt.validation.models import SlotValidationError, SlotValidationResult
@@ -30,62 +24,31 @@ from a2a_t.server.prompt_compliance.models import (
     SemanticValidationError,
     SemanticValidationResult,
 )
+from tests.support import FakePromptResourceAccess
 
+PROCESSED_PROMPT = "processed body"
 
-class FakeTemplateLoader:
-    def __init__(self, result: str | Exception) -> None:
-        self._result = result
-        self.last_reference: PromptReference | None = None
+_SCENARIO_RESOLUTION = ScenarioResolutionResult(
+    success=True,
+    reference=PromptReference(
+        scenario_code="ran-energy-saving",
+        language="en-US",
+    ),
+    scenario=ScenarioDefinition(
+        scenario_code="ran-energy-saving",
+        scenario_name="Energy Saving",
+        description="Used for energy saving analysis.",
+        example="Analyze site power usage and suggest optimization.",
+    ),
+)
 
-    def load(self, *, reference: PromptReference) -> str:
-        self.last_reference = reference
-        if isinstance(self._result, Exception):
-            raise self._result
-        return self._result
-
-
-class FakeSlotSchemaLoader:
-    def __init__(
-        self,
-        slot_schema_result: SlotSchema | Exception,
-        json_schema_result: dict[str, object] | Exception | None = None,
-    ) -> None:
-        self._slot_schema_result = slot_schema_result
-        self._json_schema_result = (
-            json_schema_result
-            if json_schema_result is not None
-            else {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {"site": {"type": "string", "minLength": 1}},
-                "required": ["site"],
-                "additionalProperties": False,
-            }
-        )
-        self.last_json_schema_reference: PromptReference | None = None
-        self.last_slot_schema_reference: PromptReference | None = None
-
-    def load_json_schema(self, *, reference: PromptReference) -> dict[str, object]:
-        self.last_json_schema_reference = reference
-        if isinstance(self._json_schema_result, Exception):
-            raise self._json_schema_result
-        return self._json_schema_result
-
-    def load_slot_schema(self, *, reference: PromptReference) -> SlotSchema:
-        self.last_slot_schema_reference = reference
-        if isinstance(self._slot_schema_result, Exception):
-            raise self._slot_schema_result
-        return self._slot_schema_result
-
-
-class FakePromptResourceLoader:
-    def __init__(self, result: PromptMessages | Exception) -> None:
-        self._result = result
-
-    def load(self, *, analysis_action: str, language: str) -> PromptMessages:
-        if isinstance(self._result, Exception):
-            raise self._result
-        return self._result
+_SLOT_JSON_SCHEMA: dict[str, object] = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {"site": {"type": "string", "minLength": 1}},
+    "required": ["site"],
+    "additionalProperties": False,
+}
 
 
 class FakeScenarioResolver:
@@ -102,9 +65,11 @@ class FakeExtractor:
     def __init__(self, result: SlotExtractionResult) -> None:
         self._result = result
         self.last_reference: PromptReference | None = None
+        self.last_kwargs: dict[str, Any] = {}
 
     def extract(self, **kwargs: object) -> SlotExtractionResult:
-        self.last_reference = kwargs.get("reference")
+        self.last_reference = kwargs.get("reference")  # type: ignore[assignment]
+        self.last_kwargs = dict(kwargs)
         return self._result
 
 
@@ -153,451 +118,365 @@ class FalsyLogger(FakeLogger):
         return False
 
 
-class PromptComplianceOrchestratorRuntimeTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.processed_prompt = "processed body"
-        self.scenario_resolution = ScenarioResolutionResult(
-            success=True,
-            reference=PromptReference(
-                scenario_code="ran-energy-saving",
-                language="en-US",
-            ),
-            scenario=ScenarioDefinition(
-                scenario_code="ran-energy-saving",
-                scenario_name="Energy Saving",
-                description="Used for energy saving analysis.",
-                example="Analyze site power usage and suggest optimization.",
-            ),
-        )
+def _build_service(
+    *,
+    resource_access: FakePromptResourceAccess | None = None,
+    scenario_resolver: FakeScenarioResolver | None = None,
+    extractor: FakeExtractor | None = None,
+    validator: FakeValidator | None = None,
+    semantic_validator: FakeSemanticValidator | None = None,
+    logger: FakeLogger | None = None,
+) -> Any:
+    from a2a_t.server.prompt_compliance.prompt_compliance_orchestrator import PromptComplianceOrchestrator
 
-    def _slot_schema(self) -> SlotSchema:
-        return SlotSchema(
-            scenario_code="ran-energy-saving",
-            slots=[
-                SlotDefinition(
-                    name="site",
-                    required=True,
-                    description="Site name",
-                    example="Site A",
-                    value_constraint="Must be a concrete site name.",
-                    type="string",
-                    allowed_values=None,
-                    range=None,
-                    pattern=None,
-                )
-            ],
-        )
+    return PromptComplianceOrchestrator(
+        scenario_resolver=scenario_resolver or FakeScenarioResolver(_SCENARIO_RESOLUTION),
+        resource_access=resource_access
+        or FakePromptResourceAccess(
+            template_text="Site: {site}",
+            slot_json_schema=_SLOT_JSON_SCHEMA,
+            system_prompt="Extract slots.",
+            user_prompt="Return slots.",
+        ),
+        extractor=extractor or FakeExtractor(SlotExtractionResult(slots={"site": "Site A"}, slot_errors=[])),
+        validator=validator or FakeValidator(SlotValidationResult(passed=True, slot_errors=[])),
+        semantic_validator=semantic_validator or FakeSemanticValidator(passed=True),
+        logger=logger,
+    )
 
-    def _build_service(
-        self,
-        *,
-        template_loader: FakeTemplateLoader | None = None,
-        slot_schema_loader: FakeSlotSchemaLoader | None = None,
-        prompt_resource_loader: FakePromptResourceLoader | None = None,
-        scenario_resolver: FakeScenarioResolver | None = None,
-        extractor: FakeExtractor | None = None,
-        validator: FakeValidator | None = None,
-        semantic_validator: FakeSemanticValidator | None = None,
-        logger: FakeLogger | None = None,
-    ):
-        from a2a_t.server.prompt_compliance.prompt_compliance_orchestrator import PromptComplianceOrchestrator
 
-        return PromptComplianceOrchestrator(
-            scenario_resolver=scenario_resolver or FakeScenarioResolver(self.scenario_resolution),
-            template_loader=template_loader or FakeTemplateLoader("Site: {site}"),
-            slot_schema_loader=slot_schema_loader or FakeSlotSchemaLoader(self._slot_schema()),
-            prompt_resource_loader=prompt_resource_loader
-            or FakePromptResourceLoader(PromptMessages(system_prompt="Extract slots.", user_prompt="Return slots.")),
-            extractor=extractor or FakeExtractor(SlotExtractionResult(slots={"site": "Site A"}, slot_errors=[])),
-            validator=validator or FakeValidator(SlotValidationResult(passed=True, slot_errors=[])),
-            semantic_validator=semantic_validator or FakeSemanticValidator(passed=True),
-            logger=logger,
-        )
+def test_check_returns_success_result() -> None:
+    access = FakePromptResourceAccess(
+        template_text="Site: {site}",
+        slot_json_schema=_SLOT_JSON_SCHEMA,
+        system_prompt="Extract slots.",
+        user_prompt="Return slots.",
+    )
+    extractor = FakeExtractor(SlotExtractionResult(slots={"site": "Site A"}, slot_errors=[]))
+    service = _build_service(resource_access=access, extractor=extractor)
 
-    def test_check_returns_success_result(self) -> None:
-        template_loader = FakeTemplateLoader("Site: {site}")
-        slot_schema_loader = FakeSlotSchemaLoader(self._slot_schema())
-        extractor = FakeExtractor(SlotExtractionResult(slots={"site": "Site A"}, slot_errors=[]))
-        service = self._build_service(
-            template_loader=template_loader,
-            slot_schema_loader=slot_schema_loader,
-            extractor=extractor,
-        )
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
 
-        result = service.check(processed_prompt_text=self.processed_prompt)
+    assert access.template_calls == [("ran-energy-saving", "en-US")]
+    assert access.slot_schema_calls == [("ran-energy-saving", "en-US")]
+    assert access.prompt_calls == [
+        ("slot_extraction", "en-US", "system.md"),
+        ("slot_extraction", "en-US", "user.md"),
+    ]
+    assert extractor.last_reference == PromptReference(scenario_code="ran-energy-saving", language="en-US")
+    assert extractor.last_kwargs["system_prompt"] == "Extract slots."
+    assert extractor.last_kwargs["user_prompt"] == "Return slots."
+    assert result == PromptComplianceResult(success=True)
 
-        self.assertEqual(
-            template_loader.last_reference, PromptReference(scenario_code="ran-energy-saving", language="en-US")
-        )
-        self.assertEqual(
-            slot_schema_loader.last_json_schema_reference,
-            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-        )
-        self.assertEqual(
-            slot_schema_loader.last_slot_schema_reference,
-            PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-        )
-        self.assertEqual(extractor.last_reference, PromptReference(scenario_code="ran-energy-saving", language="en-US"))
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=True,
-            ),
-        )
 
-    def test_check_returns_slot_validation_error_with_failure_payload(self) -> None:
-        slot_errors = [
-            SlotValidationError(
-                slot_name="site",
-                code="invalid_value",
-                message="Site format is invalid.",
-            )
-        ]
-        service = self._build_service(
-            validator=FakeValidator(
-                SlotValidationResult(
-                    passed=False,
-                    slot_errors=slot_errors,
-                )
+def test_check_returns_slot_validation_error_with_failure_payload() -> None:
+    service = _build_service(
+        validator=FakeValidator(
+            SlotValidationResult(
+                passed=False,
+                slot_errors=[
+                    SlotValidationError(
+                        slot_name="site",
+                        code="invalid_value",
+                        message="Site format is invalid.",
+                    )
+                ],
             )
         )
+    )
 
-        result = service.check(processed_prompt_text=self.processed_prompt)
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
 
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.SLOT_CONSTRAINT_VIOLATED.value,
-                    message="Site format is invalid.",
-                    stage=SLOT_VALIDATION_STAGE,
-                ),
-            ),
-        )
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=ErrorCatalog.SLOT_CONSTRAINT_VIOLATED.value,
+            message="Site format is invalid.",
+            stage=SLOT_VALIDATION_STAGE,
+        ),
+    )
 
-    def test_check_returns_slot_validation_error_for_negotiable_slot_failures(self) -> None:
-        service = self._build_service(
-            validator=FakeValidator(
-                SlotValidationResult(
-                    passed=False,
-                    slot_errors=[
-                        SlotValidationError(
-                            slot_name="site",
-                            code=MISSING_INPUT,
-                            message="Required slot 'site' is missing.",
-                        ),
-                        SlotValidationError(
-                            slot_name="analysis_target",
-                            code=INVALID_VALUE,
-                            message="analysis_target is invalid.",
-                        ),
-                    ],
-                )
-            )
-        )
 
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.SLOT_NOT_PROVIDED.value,
-                    message="Required slot 'site' is missing.; analysis_target is invalid.",
-                    stage=SLOT_VALIDATION_STAGE,
-                ),
-            ),
-        )
-
-    def test_check_skips_semantic_validation_when_schema_fails(self) -> None:
-        semantic_validator = FakeSemanticValidator(passed=True)
-        service = self._build_service(
-            validator=FakeValidator(
-                SlotValidationResult(
-                    passed=False,
-                    slot_errors=[
-                        SlotValidationError(
-                            slot_name="site",
-                            code=MISSING_INPUT,
-                            message="Required slot 'site' is missing.",
-                        )
-                    ],
-                )
-            ),
-            semantic_validator=semantic_validator,
-        )
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(semantic_validator.calls, 0)
-        self.assertEqual(result.success, False)
-        assert result.failure is not None
-        self.assertEqual(result.failure.code, ErrorCatalog.SLOT_NOT_PROVIDED.value)
-        self.assertEqual(result.failure.stage, SLOT_VALIDATION_STAGE)
-
-    def test_check_returns_slot_validation_error_when_semantic_validation_fails(self) -> None:
-        semantic_validator = FakeSemanticValidator(passed=False, message="semantic mismatch for site")
-        service = self._build_service(semantic_validator=semantic_validator)
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(semantic_validator.calls, 1)
-        self.assertEqual(
-            semantic_validator.last_kwargs,
-            {
-                "language": "en-US",
-                "slot_json_schema": {
-                    "$schema": "https://json-schema.org/draft/2020-12/schema",
-                    "type": "object",
-                    "properties": {"site": {"type": "string", "minLength": 1}},
-                    "required": ["site"],
-                    "additionalProperties": False,
-                },
-                "extracted_slots": {"site": "Site A"},
-            },
-        )
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.SLOT_CONSTRAINT_VIOLATED.value,
-                    message="semantic mismatch for site",
-                    stage=SLOT_VALIDATION_STAGE,
-                ),
-            ),
-        )
-
-    def test_check_returns_success_when_schema_and_semantic_validation_pass(self) -> None:
-        semantic_validator = FakeSemanticValidator(passed=True)
-        logger = FakeLogger()
-        service = self._build_service(semantic_validator=semantic_validator, logger=logger)
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(semantic_validator.calls, 1)
-        self.assertEqual(result, PromptComplianceResult(success=True))
-        messages = [message for message, _ in logger.info_messages]
-        self.assertIn("prompt_compliance_started", messages)
-        self.assertTrue(any(message.startswith("prompt_compliance_scenario_resolved") for message in messages))
-        self.assertTrue(any(message.startswith("prompt_compliance_completed") for message in messages))
-
-    def test_check_uses_explicit_logger_even_when_logger_is_falsy(self) -> None:
-        logger = FalsyLogger()
-        service = self._build_service(logger=logger)
-
-        service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertIn(("prompt_compliance_started", ()), logger.info_messages)
-
-    def test_check_logs_failure_stage_and_code(self) -> None:
-        logger = FakeLogger()
-        service = self._build_service(
-            validator=FakeValidator(
-                SlotValidationResult(
-                    passed=False,
-                    slot_errors=[
-                        SlotValidationError(
-                            slot_name="site",
-                            code=MISSING_INPUT,
-                            message="Required slot 'site' is missing.",
-                        )
-                    ],
-                )
-            ),
-            logger=logger,
-        )
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertFalse(result.success)
-        self.assertIn(
-            (
-                "prompt_compliance_completed success=%s stage=%s code=%s",
-                (False, SLOT_VALIDATION_STAGE, ErrorCatalog.SLOT_NOT_PROVIDED.value),
-            ),
-            logger.info_messages,
-        )
-
-    def test_check_returns_template_load_error_when_template_resource_is_missing(self) -> None:
-        service = self._build_service(
-            template_loader=FakeTemplateLoader(PromptResourceNotFoundError("missing template")),
-        )
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.TEMPLATE_NOT_FOUND.value,
-                    message=(
-                        "Template 'ran-energy-saving' does not support language 'en-US'; "
-                        "check the template URI and language setting"
+def test_check_returns_slot_validation_error_for_negotiable_slot_failures() -> None:
+    service = _build_service(
+        validator=FakeValidator(
+            SlotValidationResult(
+                passed=False,
+                slot_errors=[
+                    SlotValidationError(
+                        slot_name="site",
+                        code=MISSING_INPUT,
+                        message="Required slot 'site' is missing.",
                     ),
-                    stage="preparation",
-                ),
-            ),
-        )
-
-    def test_check_returns_prompt_parse_error_when_scenario_resolution_fails(self) -> None:
-        service = self._build_service(
-            scenario_resolver=FakeScenarioResolver(
-                ScenarioResolutionResult(
-                    success=False,
-                    failure=ScenarioResolutionFailure(
-                        code=ErrorCatalog.SCENARIO_NOT_MATCHED.value,
-                        message="The input does not match any known scenario: No matching scenario.",
-                        stage="prompt_parse",
+                    SlotValidationError(
+                        slot_name="analysis_target",
+                        code=INVALID_VALUE,
+                        message="analysis_target is invalid.",
                     ),
-                )
-            ),
+                ],
+            )
         )
+    )
 
-        result = service.check(processed_prompt_text="natural language prompt")
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
 
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=ErrorCatalog.SLOT_NOT_PROVIDED.value,
+            message="Required slot 'site' is missing.; analysis_target is invalid.",
+            stage=SLOT_VALIDATION_STAGE,
+        ),
+    )
+
+
+def test_check_skips_semantic_validation_when_schema_fails() -> None:
+    semantic_validator = FakeSemanticValidator(passed=True)
+    service = _build_service(
+        validator=FakeValidator(
+            SlotValidationResult(
+                passed=False,
+                slot_errors=[
+                    SlotValidationError(
+                        slot_name="site",
+                        code=MISSING_INPUT,
+                        message="Required slot 'site' is missing.",
+                    )
+                ],
+            )
+        ),
+        semantic_validator=semantic_validator,
+    )
+
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert semantic_validator.calls == 0
+    assert result.success is False
+    assert result.failure is not None
+    assert result.failure.code == ErrorCatalog.SLOT_NOT_PROVIDED.value
+    assert result.failure.stage == SLOT_VALIDATION_STAGE
+
+
+def test_check_returns_slot_validation_error_when_semantic_validation_fails() -> None:
+    semantic_validator = FakeSemanticValidator(passed=False, message="semantic mismatch for site")
+    service = _build_service(semantic_validator=semantic_validator)
+
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert semantic_validator.calls == 1
+    assert semantic_validator.last_kwargs == {
+        "language": "en-US",
+        "slot_json_schema": _SLOT_JSON_SCHEMA,
+        "extracted_slots": {"site": "Site A"},
+    }
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=ErrorCatalog.SLOT_CONSTRAINT_VIOLATED.value,
+            message="semantic mismatch for site",
+            stage=SLOT_VALIDATION_STAGE,
+        ),
+    )
+
+
+def test_check_returns_success_when_schema_and_semantic_validation_pass() -> None:
+    semantic_validator = FakeSemanticValidator(passed=True)
+    logger = FakeLogger()
+    service = _build_service(semantic_validator=semantic_validator, logger=logger)
+
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert semantic_validator.calls == 1
+    assert result == PromptComplianceResult(success=True)
+    messages = [message for message, _ in logger.info_messages]
+    assert "prompt_compliance_started" in messages
+    assert any(message.startswith("prompt_compliance_scenario_resolved") for message in messages)
+    assert any(message.startswith("prompt_compliance_completed") for message in messages)
+
+
+def test_check_uses_explicit_logger_even_when_logger_is_falsy() -> None:
+    logger = FalsyLogger()
+    service = _build_service(logger=logger)
+
+    service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert ("prompt_compliance_started", ()) in logger.info_messages
+
+
+def test_check_logs_failure_stage_and_code() -> None:
+    logger = FakeLogger()
+    service = _build_service(
+        validator=FakeValidator(
+            SlotValidationResult(
+                passed=False,
+                slot_errors=[
+                    SlotValidationError(
+                        slot_name="site",
+                        code=MISSING_INPUT,
+                        message="Required slot 'site' is missing.",
+                    )
+                ],
+            )
+        ),
+        logger=logger,
+    )
+
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert result.success is False
+    assert (
+        "prompt_compliance_completed success=%s stage=%s code=%s",
+        (False, SLOT_VALIDATION_STAGE, ErrorCatalog.SLOT_NOT_PROVIDED.value),
+    ) in logger.info_messages
+
+
+@pytest.mark.parametrize(
+    ("template_failure", "expected_code", "expected_message"),
+    [
+        (
+            A2ATBusinessError(
+                ErrorCatalog.TEMPLATE_NOT_FOUND,
+                {"template_uri": "ran-energy-saving", "language": "en-US"},
+            ),
+            ErrorCatalog.TEMPLATE_NOT_FOUND.value,
+            "Template 'ran-energy-saving' does not support language 'en-US'; "
+            "check the template URI and language setting",
+        ),
+        (
+            A2ATError("template resource read failed"),
+            ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+            "Failed to read resource 'ran-energy-saving'",
+        ),
+    ],
+    ids=["missing-template", "template-read-failure"],
+)
+def test_check_returns_template_failures_from_the_access_layer(
+    template_failure: Exception,
+    expected_code: str,
+    expected_message: str,
+) -> None:
+    service = _build_service(resource_access=FakePromptResourceAccess(template_text=template_failure))
+
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=expected_code,
+            message=expected_message,
+            stage="preparation",
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("slot_schema_failure", "expected_code", "expected_message"),
+    [
+        (
+            A2ATBusinessError(
+                ErrorCatalog.SLOT_SCHEMA_NOT_FOUND,
+                {"template_uri": "ran-energy-saving", "language": "en-US"},
+            ),
+            ErrorCatalog.SLOT_SCHEMA_NOT_FOUND.value,
+            "Template 'ran-energy-saving' is missing its slot schema (language 'en-US')",
+        ),
+        (
+            A2ATError("slot schema resource read failed"),
+            ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+            "Failed to read resource 'ran-energy-saving'",
+        ),
+    ],
+    ids=["missing-slot-schema", "slot-schema-read-failure"],
+)
+def test_check_returns_slot_schema_failures_from_the_access_layer(
+    slot_schema_failure: Exception,
+    expected_code: str,
+    expected_message: str,
+) -> None:
+    service = _build_service(resource_access=FakePromptResourceAccess(slot_json_schema=slot_schema_failure))
+
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=expected_code,
+            message=expected_message,
+            stage="preparation",
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "prompt_failure",
+    [
+        A2ATError("Failed to read resource 'prompt_resources/prompts/slot_extraction/en-US/system.md'."),
+        A2ATError("prompt resource path escapes local root"),
+    ],
+    ids=["missing-prompts", "prompt-read-failure"],
+)
+def test_check_returns_preparation_error_when_slot_prompts_cannot_be_loaded(prompt_failure: Exception) -> None:
+    service = _build_service(resource_access=FakePromptResourceAccess(system_prompt=prompt_failure))
+
+    result = service.check(processed_prompt_text=PROCESSED_PROMPT)
+
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
+            message="Failed to read resource 'ran-energy-saving'",
+            stage="preparation",
+        ),
+    )
+
+
+def test_check_returns_prompt_parse_error_when_scenario_resolution_fails() -> None:
+    service = _build_service(
+        scenario_resolver=FakeScenarioResolver(
+            ScenarioResolutionResult(
                 success=False,
-                failure=PromptComplianceFailure(
+                failure=ScenarioResolutionFailure(
                     code=ErrorCatalog.SCENARIO_NOT_MATCHED.value,
                     message="The input does not match any known scenario: No matching scenario.",
                     stage="prompt_parse",
                 ),
-            ),
-        )
+            )
+        ),
+    )
 
-    def test_check_returns_preparation_error_when_scenario_resources_cannot_be_resolved(self) -> None:
-        service = self._build_service(
-            scenario_resolver=FakeScenarioResolver(
-                ScenarioResolutionResult(
-                    success=False,
-                    failure=ScenarioResolutionFailure(
-                        code=ErrorCatalog.TEMPLATE_LOAD_FAILED.value,
-                        message="Failed to read template resource 'Scenario recognition prompt resources are missing.'",
-                        stage="preparation",
-                    ),
-                )
-            ),
-        )
+    result = service.check(processed_prompt_text="natural language prompt")
 
-        result = service.check(processed_prompt_text="natural language prompt")
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=ErrorCatalog.SCENARIO_NOT_MATCHED.value,
+            message="The input does not match any known scenario: No matching scenario.",
+            stage="prompt_parse",
+        ),
+    )
 
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
+
+def test_check_returns_preparation_error_when_scenario_resources_cannot_be_resolved() -> None:
+    service = _build_service(
+        scenario_resolver=FakeScenarioResolver(
+            ScenarioResolutionResult(
                 success=False,
-                failure=PromptComplianceFailure(
+                failure=ScenarioResolutionFailure(
                     code=ErrorCatalog.TEMPLATE_LOAD_FAILED.value,
-                    message="Failed to read template resource 'Scenario recognition prompt resources are missing.'",
+                    message="Failed to read template resource 'scenario resources are invalid'",
                     stage="preparation",
                 ),
-            ),
-        )
+            )
+        ),
+    )
 
-    def test_check_returns_preparation_error_when_template_resource_is_invalid(self) -> None:
-        service = self._build_service(
-            template_loader=FakeTemplateLoader(PromptResourceParseError("template is invalid")),
-        )
+    result = service.check(processed_prompt_text="natural language prompt")
 
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
-                    message="Failed to read resource 'template is invalid'",
-                    stage="preparation",
-                ),
-            ),
-        )
-
-    def test_check_returns_preparation_error_when_slot_schema_resource_is_invalid(self) -> None:
-        service = self._build_service(
-            slot_schema_loader=FakeSlotSchemaLoader(PromptResourceParseError("slot schema is invalid")),
-        )
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
-                    message="Failed to read resource 'slot schema is invalid'",
-                    stage="preparation",
-                ),
-            ),
-        )
-
-    def test_check_returns_preparation_error_when_slot_prompt_resources_are_missing(self) -> None:
-        service = self._build_service(
-            prompt_resource_loader=FakePromptResourceLoader(
-                PromptResourceNotFoundError("missing slot extraction prompts")
-            ),
-        )
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
-                    message="Failed to read resource 'missing slot extraction prompts'",
-                    stage="preparation",
-                ),
-            ),
-        )
-
-    def test_check_returns_preparation_error_when_slot_prompt_resource_access_fails(self) -> None:
-        service = self._build_service(
-            prompt_resource_loader=FakePromptResourceLoader(
-                PromptSourceError("prompt resource path escapes local root")
-            ),
-        )
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
-                    message="Failed to read resource 'prompt resource path escapes local root'",
-                    stage="preparation",
-                ),
-            ),
-        )
-
-    def test_check_returns_preparation_error_when_resource_path_access_fails(self) -> None:
-        service = self._build_service(
-            template_loader=FakeTemplateLoader(PromptSourceError("resource path escapes local root")),
-        )
-
-        result = service.check(processed_prompt_text=self.processed_prompt)
-
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure=PromptComplianceFailure(
-                    code=ErrorCatalog.INFRA_RESOURCE_READ_FAILED.value,
-                    message="Failed to read resource 'resource path escapes local root'",
-                    stage="preparation",
-                ),
-            ),
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+    assert result == PromptComplianceResult(
+        success=False,
+        failure=PromptComplianceFailure(
+            code=ErrorCatalog.TEMPLATE_LOAD_FAILED.value,
+            message="Failed to read template resource 'scenario resources are invalid'",
+            stage="preparation",
+        ),
+    )

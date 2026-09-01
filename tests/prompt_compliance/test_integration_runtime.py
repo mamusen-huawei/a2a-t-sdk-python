@@ -1,8 +1,9 @@
+"""Integration of the server compliance flow over a real local resource root (D31 access layer)."""
+
 from __future__ import annotations
 
 import json
 import sys
-import unittest
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,8 +14,8 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 
-from a2a_t.common.prompt_resources import PromptResourceLoader, SlotSchemaLoader, TemplateLoader
-from a2a_t.common.prompt_resources.models import ScenarioDefinition
+from a2a_t.common.prompt_resources import create
+from a2a_t.config.models import PromptRuntimeConfig
 from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.llm.models import LLMClientConfig, LLMResponse
 from a2a_t.prompt.analysis import SlotExtractor
@@ -83,12 +84,29 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
+    def _build_service(
+        self,
+        *,
+        scenario_code: str,
+        response_texts: list[str],
+    ) -> PromptComplianceOrchestrator:
+        return PromptComplianceOrchestrator(
+            scenario_resolver=FakeScenarioResolver(
+                ScenarioResolutionResult(
+                    success=True,
+                    reference=PromptReference(scenario_code=scenario_code, language="en-US"),
+                    scenario=None,
+                )
+            ),
+            resource_access=create(PromptRuntimeConfig(source_type="local_file", local_root_dir=str(self.root))),
+            extractor=SlotExtractor(llm_client=FakeSequencedLLMClient(response_texts)),
+            validator=JsonSchemaSlotValidator(),
+        )
+
     def test_handler_check_task_prompt_succeeds_with_real_shared_components(self) -> None:
         self._write_resource_file(
             "templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md", "Site: {site}"
         )
-        self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
-        self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
         self._write_resource_file(
             "slots/Task-T/network-layer/ran-energy-saving/v1/en-US/slot.json",
             json.dumps(
@@ -111,26 +129,9 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             ),
         )
 
-        service = PromptComplianceOrchestrator(
-            scenario_resolver=FakeScenarioResolver(
-                ScenarioResolutionResult(
-                    success=True,
-                    reference=PromptReference(scenario_code="ran-energy-saving", language="en-US"),
-                    scenario=ScenarioDefinition(
-                        scenario_code="ran-energy-saving",
-                        scenario_name="Energy Saving",
-                        description="Used for energy saving analysis.",
-                        example="Analyze site power usage and suggest optimization.",
-                    ),
-                )
-            ),
-            template_loader=TemplateLoader(root_dir=self.root),
-            slot_schema_loader=SlotSchemaLoader(root_dir=self.root),
-            prompt_resource_loader=PromptResourceLoader(root_dir=self.root),
-            extractor=SlotExtractor(
-                llm_client=FakeSequencedLLMClient(['{"slots": {"site": "Site A"}, "slot_errors": []}'])
-            ),
-            validator=JsonSchemaSlotValidator(),
+        service = self._build_service(
+            scenario_code="ran-energy-saving",
+            response_texts=['{"slots": {"site": "Site A"}, "slot_errors": []}'],
         )
         with (
             patch("a2a_t.server.a2at_server._default_env_path", return_value=TEST_ENV_PATH),
@@ -154,8 +155,6 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             "templates/Notification-T/network-layer/subscribe-incident/v1/en-US/template.md",
             "Levels: {subscription_condition_incident_level}",
         )
-        self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
-        self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
         self._write_resource_file(
             "slots/Notification-T/network-layer/subscribe-incident/v1/en-US/slot.json",
             json.dumps(
@@ -178,28 +177,9 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             ),
         )
 
-        service = PromptComplianceOrchestrator(
-            scenario_resolver=FakeScenarioResolver(
-                ScenarioResolutionResult(
-                    success=True,
-                    reference=PromptReference(scenario_code="subscribe-incident", language="en-US"),
-                    scenario=ScenarioDefinition(
-                        scenario_code="subscribe-incident",
-                        scenario_name="Subscribe Incident",
-                        description="Subscribe incidents by condition.",
-                        example="Subscribe to critical incidents.",
-                    ),
-                )
-            ),
-            template_loader=TemplateLoader(root_dir=self.root),
-            slot_schema_loader=SlotSchemaLoader(root_dir=self.root),
-            prompt_resource_loader=PromptResourceLoader(root_dir=self.root),
-            extractor=SlotExtractor(
-                llm_client=FakeSequencedLLMClient(
-                    ['{"slots": {"subscription_condition_incident_level": "warning"}, "slot_errors": []}']
-                )
-            ),
-            validator=JsonSchemaSlotValidator(),
+        service = self._build_service(
+            scenario_code="subscribe-incident",
+            response_texts=['{"slots": {"subscription_condition_incident_level": "warning"}, "slot_errors": []}'],
         )
         with (
             patch("a2a_t.server.a2at_server._default_env_path", return_value=TEST_ENV_PATH),
@@ -233,8 +213,6 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             "templates/Notification-T/network-layer/subscribe-incident/v1/en-US/template.md",
             "Name: {subscription_condition_incident_name}\nLevels: {subscription_condition_incident_level}",
         )
-        self._write_resource_file("prompts/slot_extraction/en-US/system.md", "Extract slots.")
-        self._write_resource_file("prompts/slot_extraction/en-US/user.md", "Return slots.")
         self._write_resource_file(
             "slots/Notification-T/network-layer/subscribe-incident/v1/en-US/slot.json",
             json.dumps(
@@ -263,30 +241,11 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
             ),
         )
 
-        service = PromptComplianceOrchestrator(
-            scenario_resolver=FakeScenarioResolver(
-                ScenarioResolutionResult(
-                    success=True,
-                    reference=PromptReference(scenario_code="subscribe-incident", language="en-US"),
-                    scenario=ScenarioDefinition(
-                        scenario_code="subscribe-incident",
-                        scenario_name="Subscribe Incident",
-                        description="Subscribe incidents by condition.",
-                        example="Subscribe to critical incidents.",
-                    ),
-                )
-            ),
-            template_loader=TemplateLoader(root_dir=self.root),
-            slot_schema_loader=SlotSchemaLoader(root_dir=self.root),
-            prompt_resource_loader=PromptResourceLoader(root_dir=self.root),
-            extractor=SlotExtractor(
-                llm_client=FakeSequencedLLMClient(
-                    [
-                        '{"slots": {"subscription_condition_incident_name": null, "subscription_condition_incident_level": null}, "slot_errors": []}'
-                    ]
-                )
-            ),
-            validator=JsonSchemaSlotValidator(),
+        service = self._build_service(
+            scenario_code="subscribe-incident",
+            response_texts=[
+                '{"slots": {"subscription_condition_incident_name": null, "subscription_condition_incident_level": null}, "slot_errors": []}'
+            ],
         )
         with (
             patch("a2a_t.server.a2at_server._default_env_path", return_value=TEST_ENV_PATH),
@@ -307,4 +266,6 @@ class PromptComplianceIntegrationRuntimeTest(ManagedTempDirTestCase):
 
 
 if __name__ == "__main__":
+    import unittest
+
     unittest.main()

@@ -22,4 +22,3 @@ class SlotValidationResult:
 
     passed: bool
     slot_errors: list[SlotValidationError]
-

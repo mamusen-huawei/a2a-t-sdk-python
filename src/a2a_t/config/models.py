@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
-from a2a_t.common.resource_roots import resolve_prompt_resource_root
 from a2a_t.config.source import DotEnvConfigSource
 from a2a_t.core.errors.input_limit import InputLimitConfig
 
@@ -26,8 +25,18 @@ def _parse_float(raw_value: str | None, default: float) -> float:
 
 
 def _default_prompt_resource_root_dir() -> str:
-    """Return the packaged prompt resource root directory."""
-    return str(resolve_prompt_resource_root().resolve())
+    """Return the packaged prompt resource root directory through the access layer (D8/D31).
+
+    The import is deferred on purpose: the resource access package imports this module at import
+    time, so the default-root resolution can only reach back into the access layer at call time.
+    Non-filesystem layouts (zipapp) have no directory to point at; an empty string then makes
+    ``local_file`` mode fail fast with a config error asking for an explicit local root, while
+    ``packaged`` mode keeps working unchanged.
+    """
+    from a2a_t.common.prompt_resources.packaged_access import prompt_resources_root
+
+    root = prompt_resources_root()
+    return str(root.resolve()) if root is not None else ""
 
 
 def _resolve_prompt_resource_root_dir(raw_value: str | None, *, base_dir: Path | None = None) -> str:
