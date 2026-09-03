@@ -337,7 +337,7 @@ class ValidationPipeline(Generic[T]):
 
     def validate(
         self,
-        prompt: str,
+        prompt: str | None,
         schema: Mapping[str, object],
         reference: T,
         template_content: str | None = None,
@@ -369,25 +369,32 @@ class ValidationPipeline(Generic[T]):
         """
         if template_content is None and self._template_content_loader is None:
             raise RuntimeError(_MISSING_LOADER_MESSAGE)
-        context_params = self._validate_inputs_and_run_rule_gate(prompt, schema, reference)
+        validated_prompt, context_params = self._validate_inputs_and_run_rule_gate(prompt, schema, reference)
         if template_content is None:
             template_content = self._load_template_content(reference)
-        return self._run_semantic_validation_and_merge(prompt, schema, reference, context_params, template_content)
+        return self._run_semantic_validation_and_merge(
+            validated_prompt, schema, reference, context_params, template_content
+        )
 
     def _validate_inputs_and_run_rule_gate(
         self,
-        prompt: str,
+        prompt: str | None,
         schema: Mapping[str, object],
         reference: T,
-    ) -> Mapping[str, object]:
-        """Run the input gate, then the deterministic rule-level gate."""
+    ) -> tuple[str, Mapping[str, object]]:
+        """Run the input gate, then the deterministic rule-level gate.
+
+        Returns:
+            the validated prompt (never ``None``) and the rule-gate context
+            parameters.
+        """
         if schema is None:
             raise self._invalid_input("Parameter schema must not be null.")
         if prompt is None or prompt.strip() == "":
             raise self._invalid_input("Prompt must not be null or blank.")
         if reference is None:
             raise self._invalid_input("Template reference must not be null.")
-        return self._rule_checker.check(prompt)
+        return prompt, self._rule_checker.check(prompt)
 
     def _load_template_content(self, reference: T) -> str:
         """Resolve the template body through the injected loader gate."""

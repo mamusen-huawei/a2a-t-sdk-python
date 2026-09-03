@@ -15,7 +15,7 @@ the internal carrier, ``str`` is the external one — use ``ErrorCatalog.value``
 from __future__ import annotations
 
 from enum import Enum
-from typing import Self
+from typing import Self, cast
 
 
 class Category(Enum):
@@ -40,6 +40,9 @@ class ErrorCatalog(str, Enum):
             example ``("template_uri", "language")``; callers pass the values keyed by these names
             when raising, and the message renderer fills the ``{name}`` placeholders with them.
     """
+
+    category: Category
+    fact_parameters: tuple[str, ...]
 
     def __new__(cls, code: str, category: Category, fact_parameters: tuple[str, ...]) -> Self:
         """Create one catalog member from its code string, category and fact parameter names."""
@@ -218,6 +221,6 @@ def by_code(code: str) -> ErrorCatalog:
         KeyError: when the code is not in the closed catalog
     """
     try:
-        return ErrorCatalog._value2member_map_[code]
+        return cast(ErrorCatalog, ErrorCatalog._value2member_map_[code])
     except KeyError:
         raise KeyError(code) from None

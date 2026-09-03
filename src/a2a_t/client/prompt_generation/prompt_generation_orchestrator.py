@@ -25,7 +25,7 @@ from a2a_t.core.metadata import (
 from a2a_t.core.prompt_resource_key import PromptResourceKey
 from a2a_t.core.template_uri import TemplateUri
 from a2a_t.llm.errors import LLMConfigError, LLMError, is_response_contract_violation
-from a2a_t.prompt.analysis import ScenarioResolutionOrchestrator
+from a2a_t.prompt.analysis import ScenarioResolutionOrchestrator, SlotExtractor
 from a2a_t.prompt.analysis.errors import PromptAnalysisError
 from a2a_t.prompt.analysis.models import SlotExtractionResult
 from a2a_t.prompt.analysis.scenario_resolution_orchestrator import (
@@ -70,7 +70,7 @@ class PromptGenerationOrchestrator:
         config: PromptRuntimeConfig,
         resource_access: PromptResourceAccess,
         scenario_resolver: ScenarioResolutionOrchestrator,
-        slot_extractor: Any,
+        slot_extractor: SlotExtractor,
         input_normalizer: InputNormalizer | None = None,
         renderer: TaskPromptRenderer | None = None,
         input_limit: InputLimitConfig | None = None,

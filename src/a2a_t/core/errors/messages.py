@@ -170,7 +170,7 @@ def _render_template(template_text: str, facts: Mapping[str, object] | None) -> 
 def _code_str(code: ErrorCatalog | str) -> str:
     """Normalizes one code to its plain string form (D4: catalog members expose ``value``)."""
     if isinstance(code, ErrorCatalog):
-        return code.value
+        return str(code.value)
     return str(code)
 
 

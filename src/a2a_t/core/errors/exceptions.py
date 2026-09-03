@@ -78,7 +78,7 @@ class A2ATError(Exception):
         Returns:
             the code string, for example ``negotiation.invalid_input``.
         """
-        return self.code.value
+        return str(self.code.value)
 
 
 class A2ATBusinessError(A2ATError):

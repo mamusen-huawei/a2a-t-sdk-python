@@ -244,7 +244,7 @@ class InputLimitedContentValidator:
                 language=self._language,
                 message=render(ErrorCatalog.INPUT_TEXT_TOO_LONG, facts, self._language),
             )
-        return self._delegate.validate(prompt, schema, template_uri)
+        return self._delegate.validate(prompt, schema, _template_uri_of(template_uri))
 
 
 def build_content_validator(

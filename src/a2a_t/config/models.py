@@ -82,7 +82,7 @@ class PromptRuntimeConfig:
 
     language: str = "en-US"
     source_type: str = DEFAULT_PROMPT_SOURCE_TYPE
-    local_root_dir: str = field(default_factory=_default_prompt_resource_root_dir)
+    local_root_dir: str | None = field(default_factory=_default_prompt_resource_root_dir)
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str], *, base_dir: Path | None = None) -> "PromptRuntimeConfig":
