@@ -10,7 +10,7 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from a2a_t.client.prompt_generation.models import PromptGenerationResult
-from a2a_t.server.prompt_compliance.models import PromptComplianceResult
+from a2a_t.server.prompt_compliance.models import PromptComplianceFailure, PromptComplianceResult
 
 
 class FakePromptClient:
@@ -42,7 +42,11 @@ class FakePromptServer:
             return PromptComplianceResult(success=True, failure=None)
         return PromptComplianceResult(
             success=False,
-            failure={"code": "slot_validation_error", "message": "Missing fields", "stage": "slot_validation"},
+            failure=PromptComplianceFailure(
+                code="slot.rule_violation",
+                message="Missing fields",
+                stage="slot_validation",
+            ),
         )
 
 

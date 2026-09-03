@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "a2a-t-sdk"
-version = "1.0.0"
+version = "1.1.0"
 description = "Python A2A SDK for Telecom Scenarios"
 readme = "README.md"
 license = "Apache-2.0"
@@ -33,21 +33,36 @@ dev = [
     "ruff>=0.3.0",
     "mypy>=1.9.0",
     "types-jsonschema>=4.23.0",
+    "hypothesis>=6.167.1",
+    "mkdocs>=1.6.1",
+    "mkdocstrings-python>=2.0.8",
+    "mkdocs-material>=9.7.7",
 ]
 
 [project.urls]
 Homepage = "https://github.com/project-openan/a2a-t-sdk-python"
 Documentation = "https://github.com/project-openan/a2a-t-sdk-python#readme"
 
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
 [tool.uv.build-backend]
 module-name = "a2a_t"
 source-exclude = [".gitignore"]
-data = { data = "package_data" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Kept deliberately: the a2a-t-sample async tests run under this root config in CI
+# (pytest-asyncio comes in with a2a-t-sample/requirements.txt); the local SDK-only
+# venv just warns about the unknown option.
 asyncio_mode = "auto"
 addopts = "-p no:cacheprovider"
+markers = [
+    # Live-LLM corpus family (D24): opt-in through the A2AT_TEST_LLM_* environment variables;
+    # absent variables skip the family. CI excludes it with -m 'not live'.
+    "live: live-LLM corpus tests against a real A2AT_TEST_LLM_* endpoint (skips when unconfigured)",
+]
 
 [tool.ruff]
 line-length = 120
@@ -59,6 +74,10 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["E402", "E501"]
+# The corpus loader's raw-record dataclasses mirror the camelCase corpus JSON keys verbatim
+# (D21 strict binding: the field name IS the corpus key), and CorpusLoadException keeps the
+# Java exception name for cross-repo parity.
+"tests/corpus/loader.py" = ["N815", "N818"]
 
 [tool.mypy]
 python_version = "3.12"

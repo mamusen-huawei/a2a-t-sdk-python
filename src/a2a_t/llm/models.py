@@ -19,7 +19,13 @@ class LLMResponse:
 
 @dataclass(frozen=True)
 class LLMClientConfig:
-    """Resolved default configuration for the shared LLM client."""
+    """Resolved default configuration for the shared LLM client.
+
+    Attributes:
+        reasoning_effort: optional reasoning effort for reasoning models, one of
+            ``none``/``minimal``/``low``/``medium``/``high``/``xhigh`` (already normalized to lower
+            case); ``None`` leaves the provider parameter unset. Java ``LLMClientConfig.reasoningEffort``.
+    """
 
     provider: str
     model: str
@@ -31,3 +37,4 @@ class LLMClientConfig:
     timeout_seconds: float | None
     session_max_total: int
     session_max_per_provider: int
+    reasoning_effort: str | None = None

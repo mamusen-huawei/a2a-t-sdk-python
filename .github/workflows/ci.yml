@@ -31,7 +31,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Lint bundled A2A-T templates
-        run: uv run python tools/template_lint.py --resource-root package_data/prompt_resources
+        run: uv run python tools/template_lint.py --resource-root src/a2a_t/prompt_resources
 
       - name: Install samples dependencies
         run: uv pip install -r a2a-t-sample/requirements.txt
@@ -43,10 +43,12 @@ jobs:
           echo "$src" > "$venv_site/samples.pth"
 
       - name: Run SDK tests
-        run: uv run pytest tests/ -v --tb=short
+        # The live-LLM corpus family is opt-in through A2AT_TEST_LLM_* secrets this job does not
+        # provide; -m 'not live' deselects it so CI stays offline-deterministic (D24).
+        run: uv run pytest tests/ -v --tb=short -m 'not live'
 
       - name: Run samples tests
-        run: uv run pytest a2a-t-sample/subscribe-incident/test/ -v --tb=short
+        run: uv run pytest a2a-t-sample/subscribe-incident/test/ a2a-t-sample/negotiation/test/ -v --tb=short
 
   lint:
     name: Lint + Type-check (advisory)
@@ -77,10 +79,39 @@ jobs:
 
       - name: Lint samples with ruff
         working-directory: a2a-t-sample
-        run: uv run ruff check subscribe-incident/src subscribe-incident/test
+        run: uv run ruff check subscribe-incident/src subscribe-incident/test negotiation/src negotiation/test
 
       - name: Type-check with mypy
         run: uv run mypy src
+
+  docs:
+    name: Docs Build (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show git info
+        run: |
+          echo "commit: $(git rev-parse HEAD)"
+          echo "branch: $(git branch --show-current)"
+          git log --oneline -3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install SDK dependencies
+        run: uv sync --frozen
+
+      # The API reference is generated from the docstrings of src/ (port decision D26), so the
+      # build is kept cheap and unconditional instead of path-filtered: any docstring, nav page or
+      # resource link can introduce a warning. --strict turns every warning into a failure.
+      - name: Build documentation (fail on warnings)
+        run: uv run mkdocs build --strict
 
   e2e-test:
     name: E2E Samples Test

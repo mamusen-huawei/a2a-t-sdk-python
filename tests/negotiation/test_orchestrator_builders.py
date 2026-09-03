@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import sys
 import unittest
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -48,7 +51,12 @@ class FakeOrchestrator:
         type(self).last_kwargs = dict(kwargs)
 
     def start_negotiation(self, input: object) -> dict[str, object]:
-        return {"https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1": {"role": "fake", "message": "fake"}}
+        return {
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1": {
+                "role": "fake",
+                "message": "fake",
+            }
+        }
 
 
 class FakeStoreFactory:
@@ -83,8 +91,10 @@ class FakeLogger:
 
 class NegotiationOrchestratorBuilderTest(unittest.TestCase):
     def _config(self) -> A2ATConfig:
+        # Explicit source type: the default flipped to packaged in 1.1.0 (D10 step 2), and these
+        # builder tests only need the bundled packaged tree either way.
         return A2ATConfig(
-            prompt=PromptRuntimeConfig(),
+            prompt=PromptRuntimeConfig(source_type="packaged"),
             prompt_compliance=PromptComplianceConfig(),
         )
 
@@ -105,8 +115,12 @@ class NegotiationOrchestratorBuilderTest(unittest.TestCase):
             )
         )
 
-        self.assertIn("https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result)
-        negotiation_data = result["https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"]
+        self.assertIn(
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result
+        )
+        negotiation_data = result[
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"
+        ]
         self.assertEqual(negotiation_data["role"], "client")
         self.assertEqual(len(store_factory.calls), 1)
 
@@ -135,8 +149,12 @@ class NegotiationOrchestratorBuilderTest(unittest.TestCase):
             )
         )
 
-        self.assertIn("https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result)
-        negotiation_data = result["https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"]
+        self.assertIn(
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1", result
+        )
+        negotiation_data = result[
+            "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Negotiation-T/NL/v1"
+        ]
         self.assertEqual(negotiation_data["role"], "server")
         self.assertEqual(len(prompt_compliance_builder.calls), 1)
         self.assertEqual(len(store_factory.calls), 1)
@@ -220,3 +238,26 @@ class NegotiationOrchestratorBuilderTest(unittest.TestCase):
 
         assert FakeOrchestrator.last_kwargs is not None
         self.assertIs(FakeOrchestrator.last_kwargs["logger"], logger)
+
+
+# --------------------------------------------------------------------------------------
+# Deprecation shim round (D1): the retired state-machine packages behind the legacy
+# orchestrator builders this suite pins emit a DeprecationWarning when imported and will be
+# removed in the next release. The behavioral assertions above stay untouched; this only
+# pins the warning contract of the deprecated entry points this file exercises (the common
+# and store packages the builders assemble the legacy orchestrators from).
+# --------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "package_name",
+    (
+        "a2a_t.negotiation.common",
+        "a2a_t.negotiation.store",
+    ),
+)
+def test_importing_a_deprecated_negotiation_package_warns(package_name: str) -> None:
+    module = importlib.import_module(package_name)
+
+    with pytest.warns(DeprecationWarning, match=f"{package_name} package is deprecated since 1\\.1\\.0"):
+        importlib.reload(module)

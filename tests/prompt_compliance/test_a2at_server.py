@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
 
@@ -13,10 +15,11 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 
+from a2a_t.core.errors.catalog import ErrorCatalog
 from a2a_t.llm.models import LLMClientConfig
 from a2a_t.negotiation.common.enums import NegotiationStatus, NegotiationType
 from a2a_t.negotiation.common.models import ContinueNegotiationInput, NegotiationContext, StartNegotiationInput
-from a2a_t.server.prompt_compliance.models import PromptComplianceResult
+from a2a_t.server.prompt_compliance.models import PromptComplianceFailure, PromptComplianceResult
 from tests.support import TEST_ENV_PATH, ManagedTempDirTestCase
 
 
@@ -101,11 +104,11 @@ class A2ATServerTest(unittest.TestCase):
 
         compliance_result = PromptComplianceResult(
             success=False,
-            failure={
-                "code": "slot_validation_error",
-                "message": "Site format is invalid.",
-                "stage": "slot_validation",
-            },
+            failure=PromptComplianceFailure(
+                code=ErrorCatalog.SLOT_RULE_VIOLATION.value,
+                message="Site format is invalid.",
+                stage="slot_validation",
+            ),
         )
         compliance = FakePromptComplianceOrchestrator(compliance_result)
         compliance_builder = FakePromptComplianceBuilder(compliance)
@@ -147,29 +150,32 @@ class A2ATServerTest(unittest.TestCase):
                 server.check_task_prompt(processed_prompt_text="prompt"),
                 PromptComplianceResult(
                     success=False,
-                    failure={
-                        "code": "slot_validation_error",
-                        "message": "Site format is invalid.",
-                        "stage": "slot_validation",
-                    },
+                    failure=PromptComplianceFailure(
+                        code=ErrorCatalog.SLOT_RULE_VIOLATION.value,
+                        message="Site format is invalid.",
+                        stage="slot_validation",
+                    ),
                 ),
             )
-            self.assertEqual(server.start_negotiation(start_input), {"started": True})
-            self.assertEqual(
-                server.receive_negotiation(
-                    "Need more information",
-                    {
-                        "negotiationType": "information",
-                        "negotiationId": "neg-1",
-                        "role": "server",
-                        "round": 1,
-                        "status": "in-progress",
-                        "extra": {},
-                    },
-                ),
-                {"received": True},
-            )
-            self.assertEqual(server.continue_negotiation(continue_input), {"continued": True})
+            # The three legacy state-machine methods keep their forwarding behavior for one
+            # release and warn on every call (D1 deprecation shim round).
+            with pytest.warns(DeprecationWarning, match=r"A2ATServer\.\w+ is deprecated since 1\.1\.0"):
+                self.assertEqual(server.start_negotiation(start_input), {"started": True})
+                self.assertEqual(
+                    server.receive_negotiation(
+                        "Need more information",
+                        {
+                            "negotiationType": "information",
+                            "negotiationId": "neg-1",
+                            "role": "server",
+                            "round": 1,
+                            "status": "in-progress",
+                            "extra": {},
+                        },
+                    ),
+                    {"received": True},
+                )
+                self.assertEqual(server.continue_negotiation(continue_input), {"continued": True})
 
         load_llm_config.assert_called_once_with(TEST_ENV_PATH)
         create_llm_client.assert_called_once_with(llm_config.provider, llm_config, logger=logger)
@@ -237,6 +243,8 @@ class A2ATServerPromptResourceTimingTest(ManagedTempDirTestCase):
         return env_path
 
     def test_check_task_prompt_still_fails_at_call_time_when_packaged_prompts_are_missing(self) -> None:
+        from a2a_t.common.prompt_resources.packaged_access import PackagedResourceReader
+        from a2a_t.core.errors.exceptions import A2ATError
         from a2a_t.server.a2at_server import A2ATServer
 
         self._write_resource_file(
@@ -244,30 +252,30 @@ class A2ATServerPromptResourceTimingTest(ManagedTempDirTestCase):
             '{"scenarios":[{"scenario_code":"ran-energy-saving","scenario_name":"Energy Saving","description":"Used for energy saving analysis.","example":"Analyze site power usage and suggest optimization."}]}',
         )
         env_path = self._write_env()
-        missing_packaged_root = self.make_temp_dir("missing_packaged_prompts_server")
+
+        original_read_text = PackagedResourceReader.read_text
+
+        def missing_prompts_read_text(self: object, key: object) -> str:
+            if key.relative_path().startswith("prompt_resources/prompts/"):
+                raise A2ATError(f"Failed to read resource '{key.relative_path()}'.")
+            return original_read_text(self, key)
 
         with (
             patch("a2a_t.server.a2at_server.ServerNegotiationOrchestratorBuilder") as negotiation_builder_cls,
             patch("a2a_t.server.a2at_server.LLMConfigLoader.load", return_value=build_llm_config()),
             patch("a2a_t.server.a2at_server.LLMClientFactory.create", return_value=object()),
-            patch("a2a_t.common.prompt_resources.local_resources.LocalPromptResourceFiles._default_root_dir", return_value=missing_packaged_root),
+            patch.object(PackagedResourceReader, "read_text", missing_prompts_read_text),
         ):
             negotiation_builder_cls.return_value.build.return_value = object()
             server = A2ATServer(env_path=env_path)
 
             result = server.check_task_prompt(processed_prompt_text="processed body")
 
-        self.assertEqual(
-            result,
-            PromptComplianceResult(
-                success=False,
-                failure={
-                    "code": "prompt_resource_load_error",
-                    "message": "Prompt resource file does not exist.",
-                    "stage": "preparation",
-                },
-            ),
-        )
+        self.assertFalse(result.success)
+        assert result.failure is not None
+        self.assertEqual(result.failure.code, ErrorCatalog.TEMPLATE_LOAD_FAILED.value)
+        self.assertEqual(result.failure.stage, "preparation")
+        self.assertTrue(result.failure.message.startswith("Failed to read template resource"))
 
 
 if __name__ == "__main__":

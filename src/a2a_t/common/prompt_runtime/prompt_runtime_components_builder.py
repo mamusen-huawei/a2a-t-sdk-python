@@ -1,58 +1,42 @@
 from __future__ import annotations
 
-import logging
-from pathlib import Path
-
-from a2a_t.common.prompt_resources import (
-    PromptResourceLoader,
-    ScenarioLoader,
-    SlotSchemaLoader,
-    TemplateLoader,
-)
+from a2a_t.common.prompt_resources import PromptResourceAccess, create
 from a2a_t.config.models import A2ATConfig
 from a2a_t.prompt.validation import JsonSchemaSlotValidator
 
 from .prompt_runtime_components import PromptRuntimeComponents
 
-logger = logging.getLogger(__name__)
-
 
 class PromptRuntimeComponentsBuilder:
-    """Build the shared prompt runtime services used by client and server flows."""
+    """Build the shared prompt runtime services used by client and server flows.
 
-    def build(self, *, config: A2ATConfig) -> PromptRuntimeComponents:
-        """Create loaders and validators from the resolved config."""
-        prompt_config = config.prompt
-        if prompt_config.source_type != "local_file":
-            raise ValueError(f"Unsupported prompt resource source_type: {prompt_config.source_type}")
+    The resource access object is assembled from the resolved prompt runtime configuration through
+    the D31 factory, which performs the routing (``packaged`` / ``local_file``), the frozen local
+    snapshot capture and the custom-root warnings. Callers may pass their own access object to
+    inject one (the ``llm_client``-style seam used by tests and embedders).
+    """
 
-        scenario_loader = ScenarioLoader(root_dir=prompt_config.local_root_dir)
-        template_loader = TemplateLoader(root_dir=prompt_config.local_root_dir)
-        slot_schema_loader = SlotSchemaLoader(root_dir=prompt_config.local_root_dir)
-        self._warn_if_custom_prompts_dir_exists(prompt_config.local_root_dir)
-        prompt_resource_loader = PromptResourceLoader()
-        json_schema_slot_validator = JsonSchemaSlotValidator()
+    def build(
+        self,
+        *,
+        config: A2ATConfig,
+        resource_access: PromptResourceAccess | None = None,
+    ) -> PromptRuntimeComponents:
+        """Create the resource access and shared validators from the resolved config.
 
+        Args:
+            config: resolved SDK configuration carrying the prompt runtime settings.
+            resource_access: optional access object overriding the one built from the config.
+
+        Returns:
+            the shared prompt runtime components.
+
+        Raises:
+            ConfigError: when the configured source type is unsupported, or ``local_file`` mode is
+                selected without a local root that exists and is a directory.
+        """
+        access = resource_access if resource_access is not None else create(config.prompt)
         return PromptRuntimeComponents(
-            scenario_loader=scenario_loader,
-            template_loader=template_loader,
-            slot_schema_loader=slot_schema_loader,
-            prompt_resource_loader=prompt_resource_loader,
-            json_schema_slot_validator=json_schema_slot_validator,
+            resource_access=access,
+            json_schema_slot_validator=JsonSchemaSlotValidator(),
         )
-
-    def _warn_if_custom_prompts_dir_exists(self, local_root_dir: str) -> None:
-        """Warn once per build when a custom root contains ignored prompts resources."""
-        local_root = Path(local_root_dir).resolve()
-        packaged_root = PromptResourceLoader().root_dir.resolve()
-        if local_root == packaged_root:
-            return
-
-        prompts_dir = local_root / "prompts"
-        if prompts_dir.is_dir():
-            logger.warning(
-                "Custom prompt resource directory contains prompts/,"
-                " but SDK packaged prompts will be used instead."
-                " ignored_dir=%s",
-                prompts_dir,
-            )

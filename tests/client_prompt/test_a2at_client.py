@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
 
@@ -131,22 +133,25 @@ class A2ATClientTest(unittest.TestCase):
             result = client.generate_task_prompt("Analyze Site A.")
 
             self.assertIs(result, prompt_result)
-            self.assertEqual(client.start_negotiation(start_input), {"started": True})
-            self.assertEqual(
-                client.receive_negotiation(
-                    "Clarify intent",
-                    {
-                        "negotiationType": "target",
-                        "negotiationId": "neg-1",
-                        "role": "client",
-                        "round": 1,
-                        "status": "in-progress",
-                        "extra": {},
-                    },
-                ),
-                {"received": True},
-            )
-            self.assertEqual(client.continue_negotiation(continue_input), {"continued": True})
+            # The three legacy state-machine methods keep their forwarding behavior for one
+            # release and warn on every call (D1 deprecation shim round).
+            with pytest.warns(DeprecationWarning, match=r"A2ATClient\.\w+ is deprecated since 1\.1\.0"):
+                self.assertEqual(client.start_negotiation(start_input), {"started": True})
+                self.assertEqual(
+                    client.receive_negotiation(
+                        "Clarify intent",
+                        {
+                            "negotiationType": "target",
+                            "negotiationId": "neg-1",
+                            "role": "client",
+                            "round": 1,
+                            "status": "in-progress",
+                            "extra": {},
+                        },
+                    ),
+                    {"received": True},
+                )
+                self.assertEqual(client.continue_negotiation(continue_input), {"continued": True})
 
         load_llm_config.assert_called_once_with(TEST_ENV_PATH)
         create_llm_client.assert_called_once_with(llm_config.provider, llm_config, logger=None)
@@ -184,19 +189,27 @@ class A2ATClientPromptResourceTimingTest(ManagedTempDirTestCase):
 
     def test_generate_task_prompt_still_fails_at_call_time_when_packaged_prompts_are_missing(self) -> None:
         from a2a_t.client.a2at_client import A2ATClient
+        from a2a_t.common.prompt_resources.packaged_access import PackagedResourceReader
+        from a2a_t.core.errors.exceptions import A2ATError
 
         self._write_resource_file(
             "scenarios/en-US/scenarios.json",
             '{"scenarios":[{"scenario_code":"ran-energy-saving","scenario_name":"Energy Saving","description":"Used for energy saving analysis.","example":"Analyze site power usage and suggest optimization."}]}',
         )
         env_path = self._write_env()
-        missing_packaged_root = self.make_temp_dir("missing_packaged_prompts")
+
+        original_read_text = PackagedResourceReader.read_text
+
+        def missing_prompts_read_text(self: object, key: object) -> str:
+            if key.relative_path().startswith("prompt_resources/prompts/"):
+                raise A2ATError(f"Failed to read resource '{key.relative_path()}'.")
+            return original_read_text(self, key)
 
         with (
             patch("a2a_t.client.a2at_client.ClientNegotiationOrchestratorBuilder") as negotiation_builder_cls,
             patch("a2a_t.client.a2at_client.LLMConfigLoader.load", return_value=build_llm_config()),
             patch("a2a_t.client.a2at_client.LLMClientFactory.create", return_value=object()),
-            patch("a2a_t.common.prompt_resources.local_resources.LocalPromptResourceFiles._default_root_dir", return_value=missing_packaged_root),
+            patch.object(PackagedResourceReader, "read_text", missing_prompts_read_text),
         ):
             negotiation_builder_cls.return_value.build.return_value = object()
             client = A2ATClient(env_path=env_path)
@@ -205,7 +218,7 @@ class A2ATClientPromptResourceTimingTest(ManagedTempDirTestCase):
 
         self.assertFalse(result.success)
         self.assertIsNotNone(result.failure)
-        self.assertEqual(result.failure.code, "prompt_resource_load_error")
+        self.assertEqual(result.failure.code, "template.load_failed")
         self.assertEqual(result.failure.stage, "preparation")
 
 

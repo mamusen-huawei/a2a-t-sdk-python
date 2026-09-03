@@ -13,10 +13,37 @@ _MAX_HISTORY_WINDOW = 100
 _MAX_SESSION_MAX_TOTAL = 3000
 _MAX_SESSION_MAX_PER_PROVIDER = 1000
 
+#: Accepted reasoning-effort values (Java ``LLMClientConfig.VALID_REASONING_EFFORTS``).
+_VALID_REASONING_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh")
+
 
 def default_env_path() -> Path:
     """Return the default .env path used by LLM integrations."""
     return Path(__file__).resolve().parents[3] / "package_data" / ".env"
+
+
+def coerce_reasoning_effort(value: str | None) -> str | None:
+    """Parse and validate the optional reasoning-effort configuration value.
+
+    A blank value stays unset. A non-blank value is trimmed and normalized to lower case and must
+    name one of the accepted reasoning efforts, mirroring the Java ``validateReasoningEffort``
+    check (``LLMConfigError`` on any other value).
+
+    Args:
+        value: raw configuration value, may be ``None``.
+
+    Returns:
+        the normalized reasoning effort, or ``None`` when unset.
+
+    Raises:
+        LLMConfigError: when the value is not one of the accepted reasoning efforts.
+    """
+    if value is None or not value.strip():
+        return None
+    normalized = value.strip().lower()
+    if normalized not in _VALID_REASONING_EFFORTS:
+        raise LLMConfigError(f"Invalid reasoningEffort value '{normalized}'. Valid values: {_VALID_REASONING_EFFORTS}")
+    return normalized
 
 
 def coerce_optional_int(value: str | None, key: str) -> int | None:
@@ -88,8 +115,7 @@ class LLMConfigLoader:
         )
         if session_max_total < session_max_per_provider:
             raise LLMConfigError(
-                "A2AT_LLM_SESSION_MAX_TOTAL must be greater than or equal to "
-                "A2AT_LLM_SESSION_MAX_PER_PROVIDER"
+                "A2AT_LLM_SESSION_MAX_TOTAL must be greater than or equal to A2AT_LLM_SESSION_MAX_PER_PROVIDER"
             )
 
         return LLMClientConfig(
@@ -106,4 +132,5 @@ class LLMConfigLoader:
             ),
             session_max_total=session_max_total,
             session_max_per_provider=session_max_per_provider,
+            reasoning_effort=coerce_reasoning_effort(values.get("A2AT_LLM_REASONING_EFFORT")),
         )

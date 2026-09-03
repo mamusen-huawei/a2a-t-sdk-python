@@ -65,13 +65,7 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
         from a2a_t.prompt.common.task_prompt_format import parse_task_prompt_metadata
 
         with self.assertRaises(TaskPromptFormatError) as context:
-            parse_task_prompt_metadata(
-                "---\n"
-                "scenario_code: ran-energy-saving\n"
-                "language: en-US\n"
-                "---\n\n"
-                "Site: Site A"
-            )
+            parse_task_prompt_metadata("---\nscenario_code: ran-energy-saving\nlanguage: en-US\n---\n\nSite: Site A")
 
         self.assertEqual(context.exception.field, "description")
 
@@ -97,12 +91,7 @@ class A2ATTaskPromptCommonTest(unittest.TestCase):
 
         with self.assertRaises(TaskPromptFormatError) as context:
             parse_task_prompt_metadata(
-                "---\n"
-                "scenario_code: ran-energy-saving\n"
-                "language: en-US\n"
-                "description:    \n"
-                "---\n\n"
-                "Site: Site A"
+                "---\nscenario_code: ran-energy-saving\nlanguage: en-US\ndescription:    \n---\n\nSite: Site A"
             )
 
         self.assertEqual(context.exception.field, "description")

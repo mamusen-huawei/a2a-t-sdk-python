@@ -82,6 +82,10 @@ class OpenAIClient(LLMClient):
             payload["temperature"] = temperature
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
+        # Java parity: the reasoning effort is only forwarded when configured with a non-blank
+        # value, so non-reasoning models never receive the parameter.
+        if self._config.reasoning_effort:
+            payload["reasoning_effort"] = self._config.reasoning_effort
         return payload
 
     def _build_structured_messages(
@@ -110,6 +114,11 @@ class OpenAIClient(LLMClient):
 
     def _extract_json_object_string(self, response: Any) -> str:
         raw_content = self._extract_message_text(response)
+        # Java parity guard of the reasoning models: a blank content (the reasoning went into the
+        # reasoning channel, or the model was rate limited) is a coded response-contract violation,
+        # never a silent empty string.
+        if raw_content is None or not raw_content.strip():
+            raise LLMRuntimeError(f"{self._config.provider} returned empty content (rate limit or model timeout)")
         try:
             parsed = json.loads(raw_content)
         except json.JSONDecodeError as exc:

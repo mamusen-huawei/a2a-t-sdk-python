@@ -10,10 +10,14 @@ a2a-t-sample/
 ├── requirements.txt         # 共享依赖
 ├── ruff.toml                # 共享 lint 配置
 ├── README.md / README-zh.md # 本文档
-└── subscribe-incident/      # 用例：故障订阅
-    ├── src/                 #   client / server / registry / common 模块
-    ├── test/                #   单元测试
-    └── resources/           #   用例独有 mock LLM 响应数据（zh-CN / en-US）
+├── subscribe-incident/      # 用例：故障订阅
+│   ├── src/                 #   client / server / registry / common 模块
+│   ├── test/                #   单元测试
+│   └── resources/           #   用例独有 mock LLM 响应数据（zh-CN / en-US）
+└── negotiation/             # 用例：协商闭环（离线）
+    ├── src/negotiation_demo/ #  演示入口 / client & server 运行时 / 生成策略
+    ├── test/                 #  闭环测试（mock LLM，双语言）
+    └── resources/            #  场景数据 + 脚本化 mock LLM 响应（zh-CN / en-US）
 ```
 
 共享配置（`env.example`、`requirements.txt`、`ruff.toml`）位于容器层，各用例可复用。每个用例携带自己的 `src/`、`test/` 和 `resources/`。
@@ -23,6 +27,7 @@ a2a-t-sample/
 | 目录 | 说明 |
 |------|------|
 | [subscribe-incident/](subscribe-incident/) | 故障订阅用例 — 流式推送 Incident artifact（含注册中心） |
+| [negotiation/](negotiation/) | 协商闭环用例 — 离线 propose -> accept 往返（脚本化 mock LLM） |
 
 新用例直接在 `a2a-t-sample/` 下以 `subscribe-incident/` 的同级目录添加。
 
@@ -126,4 +131,42 @@ uv run python -m client_example.client_main
 ```bash
 # 运行全部用例测试（从 a2a-t-sample 目录）
 uv run pytest subscribe-incident/test/ -v
+uv run pytest negotiation/test/ -v
 ```
+
+## 用例：negotiation
+
+**离线**协商闭环演示（Java `a2a-t-sample` NegotiationDemoApp 的 Python 对应物，内嵌 HTTP
+服务器替换为进程内运行时调用）。它驱动 4 消息流程：
+
+1. client -> 以**缺失**参数生成 Task-T prompt（`generate_task_prompt_from_data_with_schema`）；
+2. server -> `validate_task_prompt_and_data_filling` 校验拒绝（参数缺失）-> 生成 Negotiation-T
+   信息**提议（propose）** -> `INPUT_REQUIRED`；
+3. client -> **补全**参数的 Task-T prompt + Negotiation-T **接受（accept）**；
+4. server -> 校验通过 -> 诊断结果 -> `COMPLETED`。
+
+### 运行（离线，无需 API key）
+
+```bash
+# 从 a2a-t-sample 目录执行；PYTHONPATH 指向用例 src
+$env:PYTHONPATH = "$pwd\negotiation\src"     # PowerShell；bash 下用 export PYTHONPATH=...
+
+uv run python -m negotiation_demo                 # fromData 策略（协商消息确定性生成）
+uv run python -m negotiation_demo --fromText      # fromText 策略（每条协商消息一次 LLM 抽取）
+uv run python -m negotiation_demo --language zh-CN
+```
+
+`.env` 中没有 `A2AT_LLM_API_KEY` 时，脚本化 mock LLM
+（`negotiation/src/negotiation_demo/shared/mock_llm.py`）从
+`negotiation/resources/mock_responses/` 应答槽位抽取、内容校验与协商抽取调用，整个往返
+完全离线运行。配置了真实 API key 时同一流程调用真实 LLM（fromData 策略的协商消息依然
+零 LLM 调用 — SDK 直接按模板渲染类型化内容）。
+
+### 流程
+
+| 阶段 | 谁调 SDK | SDK 做什么 | LLM 调用（fromData） |
+|------|----------|-----------|---------------------|
+| 消息 1 | client | Task-T 槽位抽取 + 模板渲染（`fromDataWithSchema`） | 1 |
+| 消息 2 | server | `validate_task_prompt_and_data_filling` + 协商 propose 生成 | 1（fromData +0） |
+| 消息 3 | client | Task-T 生成 + 协商 accept 生成 | 1（fromData +0） |
+| 消息 4 | server | `validate_task_prompt_and_data_filling` + 诊断渲染 | 1 |

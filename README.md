@@ -51,7 +51,7 @@ This SDK is primarily aimed at two types of users:
 - Client API: Provides a task prompt generation result stream, along with negotiation entry points such as `start_negotiation`, `receive_negotiation`, and `continue_negotiation`.
 - Server validation API: Targets `processed task prompts` that conform to the SDK format, performing metadata parsing, slot extraction.
 - Negotiation types: Includes one built-in negotiation type: `information`.
-- Resource organization: Built-in prompt resources are located in `package_data/prompt_resources`, containing `prompts`, `scenarios`, `slots`, and `templates`.
+- Resource organization: Built-in prompt resources are located in `src/a2a_t/prompt_resources` (packaged inside the SDK module), containing `prompts`, `scenarios`, `slots`, and `templates`.
 
 ## Project Structure
 

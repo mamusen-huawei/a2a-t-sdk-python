@@ -9,6 +9,7 @@ __all__ = [
     "A2ATConfig",
     "ConfigError",
     "ConfigFileNotFoundError",
+    "LlmRuntimeConfig",
     "PromptComplianceConfig",
     "PromptRuntimeConfig",
 ]
@@ -17,7 +18,7 @@ __all__ = [
 def __getattr__(name: str) -> Any:
     if name in {"ConfigError", "ConfigFileNotFoundError"}:
         value = getattr(import_module("a2a_t.config.errors"), name)
-    elif name == "A2ATConfig":
+    elif name in {"A2ATConfig", "LlmRuntimeConfig"}:
         value = getattr(import_module("a2a_t.config.models"), name)
     elif name in {"PromptRuntimeConfig", "PromptComplianceConfig"}:
         value = getattr(import_module("a2a_t.config.models"), name)

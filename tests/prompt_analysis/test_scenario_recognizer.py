@@ -20,7 +20,9 @@ class FakeLLMClient:
         self._response_text = response_text
         self.calls: list[dict[str, object]] = []
 
-    def structured(self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object) -> LLMResponse:
+    def structured(
+        self, *, messages: list[dict[str, str]], json_schema: dict[str, object], **kwargs: object
+    ) -> LLMResponse:
         self.calls.append({"messages": messages, "json_schema": json_schema, "kwargs": kwargs})
         return LLMResponse(content=self._response_text, model="fake-model", usage={}, metadata={})
 
@@ -88,7 +90,9 @@ class ScenarioRecognizerTest(unittest.TestCase):
             )
 
     def test_recognize_rejects_payload_when_unmatched_response_contains_scenario_code(self) -> None:
-        llm_client = FakeLLMClient('{"matched": false, "scenario_code": "ran-energy-saving", "error_message": "No match."}')
+        llm_client = FakeLLMClient(
+            '{"matched": false, "scenario_code": "ran-energy-saving", "error_message": "No match."}'
+        )
 
         from a2a_t.prompt.analysis.errors import ScenarioRecognitionError
         from a2a_t.prompt.analysis.scenario_recognizer import ScenarioRecognizer
@@ -138,4 +142,3 @@ class ScenarioRecognizerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

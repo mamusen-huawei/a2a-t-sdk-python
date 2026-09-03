@@ -10,10 +10,14 @@ a2a-t-sample/
 ├── requirements.txt         # shared dependencies
 ├── ruff.toml                # shared lint config
 ├── README.md / README-zh.md # this document
-└── subscribe-incident/      # use case: fault (incident) subscription
-    ├── src/                 #   client / server / registry / common modules
-    ├── test/                #   unit tests
-    └── resources/           #   use-case mock LLM response data (zh-CN / en-US)
+├── subscribe-incident/      # use case: fault (incident) subscription
+│   ├── src/                 #   client / server / registry / common modules
+│   ├── test/                #   unit tests
+│   └── resources/           #   use-case mock LLM response data (zh-CN / en-US)
+└── negotiation/             # use case: negotiation closed loop (offline)
+    ├── src/negotiation_demo/ #  demo app / client & server runtimes / strategies
+    ├── test/                 #  closed-loop tests (mock LLM, both languages)
+    └── resources/            #  scenario data + scripted mock LLM responses (zh-CN / en-US)
 ```
 
 Shared configuration (`env.example`, `requirements.txt`, `ruff.toml`) lives at the container level so every use case can reuse it. Each use case carries its own `src/`, `test/`, and `resources/`.
@@ -23,6 +27,7 @@ Shared configuration (`env.example`, `requirements.txt`, `ruff.toml`) lives at t
 | Directory | Description |
 |-----------|-------------|
 | [subscribe-incident/](subscribe-incident/) | Fault (incident) subscription — streaming Incident artifact push with registry center |
+| [negotiation/](negotiation/) | Negotiation closed loop — offline propose -> accept round trip with a scripted mock LLM |
 
 New use cases are added as sibling directories of `subscribe-incident/`.
 
@@ -126,4 +131,43 @@ The `execute_server_flow` state machine:
 ```bash
 # Run all use case tests (from the a2a-t-sample directory)
 uv run pytest subscribe-incident/test/ -v
+uv run pytest negotiation/test/ -v
 ```
+
+## Use Case: negotiation
+
+An **offline** negotiation closed-loop demo (the Python counterpart of the Java
+`a2a-t-sample` NegotiationDemoApp, with the embedded HTTP server replaced by an in-process
+runtime call). It drives the 4-message flow:
+
+1. client -> Task-T prompt generated with **missing** params (`generate_task_prompt_from_data_with_schema`);
+2. server -> `validate_task_prompt_and_data_filling` rejects (params missing) -> Negotiation-T
+   information **propose** -> `INPUT_REQUIRED`;
+3. client -> Task-T prompt with **filled** params + Negotiation-T **accept**;
+4. server -> validation passes -> diagnosis result -> `COMPLETED`.
+
+### Run (offline, no API key needed)
+
+```bash
+# From the a2a-t-sample directory; PYTHONPATH points at the use case src
+$env:PYTHONPATH = "$pwd\negotiation\src"     # PowerShell; export PYTHONPATH=... on bash
+
+uv run python -m negotiation_demo                 # fromData strategy (deterministic negotiation messages)
+uv run python -m negotiation_demo --fromText      # fromText strategy (one LLM extraction per negotiation message)
+uv run python -m negotiation_demo --language zh-CN
+```
+
+Without `A2AT_LLM_API_KEY` in `.env`, the scripted mock LLM (`negotiation/src/negotiation_demo/shared/mock_llm.py`)
+serves the slot-extraction, content-validation and negotiation-extraction calls from
+`negotiation/resources/mock_responses/`, so the whole round trip runs offline. With a real API
+key the same flow calls the real LLM (the negotiation messages of the fromData strategy still
+make no LLM call — the SDK renders the typed content directly from the template).
+
+### Flow
+
+| Stage | Who calls SDK | What SDK does | LLM calls (fromData) |
+|-------|--------------|---------------|----------------------|
+| Message 1 | client | Task-T slot extraction + template render (`fromDataWithSchema`) | 1 |
+| Message 2 | server | `validate_task_prompt_and_data_filling` + negotiation propose generation | 1 (+0 fromData) |
+| Message 3 | client | Task-T generation + negotiation accept generation | 1 (+0 fromData) |
+| Message 4 | server | `validate_task_prompt_and_data_filling` + diagnosis rendering | 1 |

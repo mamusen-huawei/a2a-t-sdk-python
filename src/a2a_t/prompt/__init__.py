@@ -13,6 +13,8 @@ __all__ = [
     "parse_task_prompt_metadata",
     "TaskPromptRenderer",
     "TaskPromptRenderError",
+    "collapse_sections",
+    "drop_sections",
 ]
 
 _EXPORTS: dict[str, tuple[str, str]] = {
@@ -23,6 +25,8 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "parse_task_prompt_metadata": ("a2a_t.prompt.common.task_prompt_format", "parse_task_prompt_metadata"),
     "TaskPromptRenderer": ("a2a_t.prompt.task_rendering", "TaskPromptRenderer"),
     "TaskPromptRenderError": ("a2a_t.prompt.task_rendering.errors", "TaskPromptRenderError"),
+    "collapse_sections": ("a2a_t.prompt.task_rendering", "collapse_sections"),
+    "drop_sections": ("a2a_t.prompt.task_rendering", "drop_sections"),
 }
 
 

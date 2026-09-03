@@ -76,17 +76,14 @@ class PromptConfigTest(ManagedTempDirTestCase):
 
         self.assertEqual(values["A2AT_PROMPT_LOCAL_DIR"], "./exported-prompts")
 
-    def test_prompt_runtime_default_root_uses_python_data_dir_when_installed(self) -> None:
+    def test_prompt_runtime_default_root_is_the_packaged_resource_tree(self) -> None:
+        import a2a_t
         import a2a_t.config.models as config_models
 
-        installed_module_path = self.make_temp_dir("installed_config") / "Lib" / "site-packages" / "a2a_t" / "config" / "models.py"
-        expected_root = self.make_temp_dir("installed_data_root") / "prompt_resources"
+        packaged_root = Path(a2a_t.__file__).resolve().parent / "prompt_resources"
 
-        with (
-            mock.patch.object(config_models, "__file__", str(installed_module_path)),
-            mock.patch("sysconfig.get_path", return_value=str(expected_root.parent)),
-        ):
-            self.assertEqual(config_models._default_prompt_resource_root_dir(), str(expected_root))
+        self.assertEqual(config_models._default_prompt_resource_root_dir(), str(packaged_root))
+
 
 if __name__ == "__main__":
     unittest.main()

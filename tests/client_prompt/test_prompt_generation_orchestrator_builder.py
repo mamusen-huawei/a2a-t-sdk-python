@@ -1,26 +1,23 @@
+"""Builder wiring tests for the client prompt generation orchestrator (D31 access layer)."""
+
 from __future__ import annotations
 
-import sys
-import unittest
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-
+from a2a_t.common.prompt_resources import PromptResourceAccess
 from a2a_t.config.models import A2ATConfig, PromptComplianceConfig, PromptRuntimeConfig
 
 
 class FakeRuntimeComponentsBuilder:
     def __init__(self, components: object) -> None:
         self.components = components
-        self.calls: list[object] = []
+        self.calls: list[tuple[A2ATConfig, PromptResourceAccess | None]] = []
 
-    def build(self, *, config: A2ATConfig) -> object:
-        self.calls.append(config)
+    def build(
+        self,
+        *,
+        config: A2ATConfig,
+        resource_access: PromptResourceAccess | None = None,
+    ) -> object:
+        self.calls.append((config, resource_access))
         return self.components
 
 
@@ -34,13 +31,11 @@ class FakeScenarioResolver:
         self,
         *,
         config: PromptRuntimeConfig,
-        scenario_loader: object,
-        prompt_resource_loader: object,
+        resource_access: object,
         scenario_recognizer: object,
     ) -> None:
         self.config = config
-        self.scenario_loader = scenario_loader
-        self.prompt_resource_loader = prompt_resource_loader
+        self.resource_access = resource_access
         self.scenario_recognizer = scenario_recognizer
 
 
@@ -54,55 +49,75 @@ class FakeOrchestrator:
         self.kwargs = kwargs
 
 
-class PromptGenerationOrchestratorBuilderTest(unittest.TestCase):
-    def test_builder_uses_runtime_components_builder_and_injects_llm_client(self) -> None:
-        from a2a_t.client.prompt_generation.prompt_generation_orchestrator_builder import (
-            PromptGenerationOrchestratorBuilder,
-        )
+def _config() -> A2ATConfig:
+    return A2ATConfig(
+        prompt=PromptRuntimeConfig(local_root_dir="./default-root"),
+        prompt_compliance=PromptComplianceConfig(),
+    )
 
-        components = type(
-            "Components",
-            (),
-            {
-                "scenario_loader": object(),
-                "prompt_resource_loader": object(),
-                "template_loader": object(),
-                "slot_schema_loader": object(),
-            },
-        )()
-        runtime_builder = FakeRuntimeComponentsBuilder(components)
-        llm_client = object()
 
-        builder = PromptGenerationOrchestratorBuilder(
-            runtime_components_builder=runtime_builder,
-            scenario_recognizer_cls=FakeScenarioRecognizer,
-            scenario_resolver_cls=FakeScenarioResolver,
-            slot_extractor_cls=FakeSlotExtractor,
-            orchestrator_cls=FakeOrchestrator,
-        )
-        config = A2ATConfig(
-            prompt=PromptRuntimeConfig(local_root_dir="./default-root"),
-            prompt_compliance=PromptComplianceConfig(),
-        )
+def test_builder_uses_runtime_components_builder_and_injects_llm_client() -> None:
+    from a2a_t.client.prompt_generation.prompt_generation_orchestrator_builder import (
+        PromptGenerationOrchestratorBuilder,
+    )
 
-        orchestrator = builder.build(
-            config=config,
-            llm_client=llm_client,
-        )
+    access = object()
+    components = type("Components", (), {"resource_access": access})()
+    runtime_builder = FakeRuntimeComponentsBuilder(components)
+    llm_client = object()
 
-        self.assertEqual(len(runtime_builder.calls), 1)
-        self.assertIs(runtime_builder.calls[0], config)
-        self.assertEqual(orchestrator.kwargs["config"].local_root_dir, "./default-root")
-        self.assertIsInstance(orchestrator.kwargs["scenario_resolver"], FakeScenarioResolver)
-        self.assertIs(orchestrator.kwargs["scenario_resolver"].config, config.prompt)
-        self.assertIs(orchestrator.kwargs["scenario_resolver"].scenario_loader, components.scenario_loader)
-        self.assertIs(orchestrator.kwargs["scenario_resolver"].prompt_resource_loader, components.prompt_resource_loader)
-        self.assertIsInstance(orchestrator.kwargs["scenario_resolver"].scenario_recognizer, FakeScenarioRecognizer)
-        self.assertIs(orchestrator.kwargs["scenario_resolver"].scenario_recognizer.llm_client, llm_client)
-        self.assertIsInstance(orchestrator.kwargs["slot_extractor"], FakeSlotExtractor)
-        self.assertIs(orchestrator.kwargs["slot_extractor"].llm_client, llm_client)
-        self.assertNotIn("scenario_loader", orchestrator.kwargs)
-        self.assertNotIn("slot_validator", orchestrator.kwargs)
+    builder = PromptGenerationOrchestratorBuilder(
+        runtime_components_builder=runtime_builder,
+        scenario_recognizer_cls=FakeScenarioRecognizer,
+        scenario_resolver_cls=FakeScenarioResolver,
+        slot_extractor_cls=FakeSlotExtractor,
+        orchestrator_cls=FakeOrchestrator,
+    )
 
-if __name__ == "__main__":
-    unittest.main()
+    orchestrator = builder.build(
+        config=_config(),
+        llm_client=llm_client,
+    )
+
+    assert len(runtime_builder.calls) == 1
+    assert runtime_builder.calls[0][0] is not None
+    assert isinstance(orchestrator, FakeOrchestrator)
+    assert orchestrator.kwargs["config"].local_root_dir == "./default-root"
+    assert isinstance(orchestrator.kwargs["scenario_resolver"], FakeScenarioResolver)
+    assert orchestrator.kwargs["scenario_resolver"].config is not None
+    assert orchestrator.kwargs["scenario_resolver"].resource_access is access
+    assert isinstance(orchestrator.kwargs["scenario_resolver"].scenario_recognizer, FakeScenarioRecognizer)
+    assert orchestrator.kwargs["scenario_resolver"].scenario_recognizer.llm_client is llm_client
+    assert isinstance(orchestrator.kwargs["slot_extractor"], FakeSlotExtractor)
+    assert orchestrator.kwargs["slot_extractor"].llm_client is llm_client
+    assert orchestrator.kwargs["resource_access"] is access
+    assert "scenario_loader" not in orchestrator.kwargs
+    assert "slot_validator" not in orchestrator.kwargs
+
+
+def test_builder_passes_an_injected_resource_access_through() -> None:
+    from a2a_t.client.prompt_generation.prompt_generation_orchestrator_builder import (
+        PromptGenerationOrchestratorBuilder,
+    )
+
+    access = object()
+    components = type("Components", (), {"resource_access": access})()
+    runtime_builder = FakeRuntimeComponentsBuilder(components)
+    llm_client = object()
+
+    builder = PromptGenerationOrchestratorBuilder(
+        runtime_components_builder=runtime_builder,
+        scenario_recognizer_cls=FakeScenarioRecognizer,
+        scenario_resolver_cls=FakeScenarioResolver,
+        slot_extractor_cls=FakeSlotExtractor,
+        orchestrator_cls=FakeOrchestrator,
+    )
+
+    builder.build(
+        config=_config(),
+        llm_client=llm_client,
+        resource_access=access,  # type: ignore[arg-type]
+    )
+
+    assert len(runtime_builder.calls) == 1
+    assert runtime_builder.calls[0][1] is access

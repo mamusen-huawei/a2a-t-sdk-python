@@ -51,7 +51,9 @@ class OpenAIClientTest(unittest.TestCase):
 
         from a2a_t.llm.providers.openai import OpenAIClient
 
-        client = LLMClientFactory.create("openai", build_config(provider="openai", base_url="https://api.openai.com/v1"))
+        client = LLMClientFactory.create(
+            "openai", build_config(provider="openai", base_url="https://api.openai.com/v1")
+        )
 
         self.assertIsInstance(client, OpenAIClient)
         self.assertIsInstance(client, LLMClient)

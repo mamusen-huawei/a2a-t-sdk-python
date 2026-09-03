@@ -12,6 +12,7 @@ if str(SRC_ROOT) not in sys.path:
 
 
 from a2a_t.llm.models import LLMResponse
+from tests.support import FakePromptResourceAccess
 
 
 class FakeLLMClient:
@@ -32,21 +33,6 @@ class FakeLLMClient:
         return self._response
 
 
-class FakePromptResourceLoader:
-    def __init__(self, *, system_prompt: str, user_prompt: str) -> None:
-        self.system_prompt = system_prompt
-        self.user_prompt = user_prompt
-        self.calls: list[dict[str, str]] = []
-
-    def load(self, *, analysis_action: str, language: str):
-        self.calls.append({"analysis_action": analysis_action, "language": language})
-        return type(
-            "PromptMessages",
-            (),
-            {"system_prompt": self.system_prompt, "user_prompt": self.user_prompt},
-        )()
-
-
 class LLMSemanticSlotValidatorTest(unittest.TestCase):
     def test_validate_builds_prompt_and_returns_passed_result(self) -> None:
         from a2a_t.server.prompt_compliance.llm_semantic_slot_validator import LLMSemanticSlotValidator
@@ -59,13 +45,13 @@ class LLMSemanticSlotValidatorTest(unittest.TestCase):
                 metadata={},
             )
         )
-        prompt_loader = FakePromptResourceLoader(
+        access = FakePromptResourceAccess(
             system_prompt="SYSTEM_PROMPT_FROM_FILE",
             user_prompt="USER_PROMPT_FROM_FILE",
         )
         validator = LLMSemanticSlotValidator(
             llm_client=llm,
-            prompt_resource_loader=prompt_loader,
+            resource_access=access,
         )
 
         result = validator.validate(
@@ -78,8 +64,8 @@ class LLMSemanticSlotValidatorTest(unittest.TestCase):
         self.assertEqual(result.errors, [])
         self.assertEqual(len(llm.calls), 1)
         self.assertEqual(
-            prompt_loader.calls,
-            [{"analysis_action": "semantic_validation", "language": "zh-CN"}],
+            access.prompt_calls,
+            [("semantic_validation", "zh-CN", "system.md"), ("semantic_validation", "zh-CN", "user.md")],
         )
         messages = llm.calls[0]["messages"]
         assert isinstance(messages, list)
@@ -92,6 +78,65 @@ class LLMSemanticSlotValidatorTest(unittest.TestCase):
         self.assertNotIn('"scenario_code"', messages[1]["content"])
         self.assertNotIn('"language"', messages[1]["content"])
         self.assertNotIn('"processed_prompt_text"', messages[1]["content"])
+
+    def test_validate_uses_the_packaged_prompts_by_default(self) -> None:
+        from a2a_t.common.prompt_resources import PackagedPromptResourceAccess
+        from a2a_t.server.prompt_compliance.llm_semantic_slot_validator import LLMSemanticSlotValidator
+
+        llm = FakeLLMClient(
+            LLMResponse(
+                content='{"passed": true, "errors": []}',
+                model="gpt-4o-mini",
+                usage={},
+                metadata={},
+            )
+        )
+        validator = LLMSemanticSlotValidator(llm_client=llm)
+
+        validator.validate(
+            language="zh-CN",
+            slot_json_schema={"type": "object"},
+            extracted_slots={"site": "Site A"},
+        )
+
+        messages = llm.calls[0]["messages"]
+        assert isinstance(messages, list)
+        packaged = PackagedPromptResourceAccess()
+        self.assertEqual(
+            messages[0]["content"],
+            packaged.load_prompt("semantic_validation", "zh-CN", "system.md"),
+        )
+        self.assertIn(packaged.load_prompt("semantic_validation", "zh-CN", "user.md"), messages[1]["content"])
+
+    def test_validate_returns_failed_result_when_prompts_cannot_be_loaded(self) -> None:
+        from a2a_t.core.errors.exceptions import A2ATError
+        from a2a_t.server.prompt_compliance.llm_semantic_slot_validator import LLMSemanticSlotValidator
+
+        llm = FakeLLMClient(
+            LLMResponse(
+                content='{"passed": true, "errors": []}',
+                model="gpt-4o-mini",
+                usage={},
+                metadata={},
+            )
+        )
+        validator = LLMSemanticSlotValidator(
+            llm_client=llm,
+            resource_access=FakePromptResourceAccess(
+                system_prompt=A2ATError("Failed to read resource 'prompts/semantic_validation/zh-CN/system.md'.")
+            ),
+        )
+
+        result = validator.validate(
+            language="zh-CN",
+            slot_json_schema={"type": "object"},
+            extracted_slots={"site": "Site A"},
+        )
+
+        self.assertFalse(result.passed)
+        self.assertEqual(len(result.errors), 1)
+        self.assertEqual(result.errors[0].code, "semantic_validation_runtime_error")
+        self.assertEqual(len(llm.calls), 0)
 
     def test_validate_returns_failed_result_when_llm_returns_invalid_json(self) -> None:
         from a2a_t.server.prompt_compliance.llm_semantic_slot_validator import LLMSemanticSlotValidator

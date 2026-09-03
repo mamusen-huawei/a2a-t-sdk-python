@@ -20,9 +20,15 @@ build/
 venv/
 .ruff_cache/
 
+# MkDocs site output (D26: docs build with `mkdocs build --strict`)
+site/
+
 # Local env files (env.example is tracked as template)
 .env
 a2a-t-sample/.env
+
+# Live corpus transcripts (D24: .live-corpus/<run>/, never committed)
+.live-corpus/
 
 # Claude 本地配置
 .claude/
@@ -31,4 +37,5 @@ a2a-t-sample/.env
 .codex_backup
 .uv-cache
 dist
-.obsidian
+.obsidian.tmp_tests/
+.tmp_tests/

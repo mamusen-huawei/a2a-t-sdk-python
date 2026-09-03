@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import sys
 import unittest
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -219,11 +222,17 @@ class NegotiationOrchestratorTest(unittest.TestCase):
             logger.info_messages,
         )
         self.assertIn(
-            ("negotiation_receive_completed role=%s type=%s id=%s status=%s", ("server", "target", "neg-1", "in-progress")),
+            (
+                "negotiation_receive_completed role=%s type=%s id=%s status=%s",
+                ("server", "target", "neg-1", "in-progress"),
+            ),
             logger.info_messages,
         )
         self.assertIn(
-            ("negotiation_continue_started role=%s type=%s id=%s status=%s", ("server", "target", "neg-1", "in-progress")),
+            (
+                "negotiation_continue_started role=%s type=%s id=%s status=%s",
+                ("server", "target", "neg-1", "in-progress"),
+            ),
             logger.info_messages,
         )
         self.assertIn(
@@ -231,3 +240,20 @@ class NegotiationOrchestratorTest(unittest.TestCase):
             logger.info_messages,
         )
         self.assertFalse(any("sensitive" in message for message, _ in logger.info_messages))
+
+
+# --------------------------------------------------------------------------------------
+# Deprecation shim round (D1): the retired state-machine packages behind the legacy
+# orchestrators this suite pins emit a DeprecationWarning when imported and will be removed
+# in the next release. The behavioral assertions above stay untouched; this only pins the
+# warning contract of the deprecated entry points this file exercises (the common package
+# backing the legacy orchestrator transports).
+# --------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("package_name", ("a2a_t.negotiation.common",))
+def test_importing_a_deprecated_negotiation_package_warns(package_name: str) -> None:
+    module = importlib.import_module(package_name)
+
+    with pytest.warns(DeprecationWarning, match=f"{package_name} package is deprecated since 1\\.1\\.0"):
+        importlib.reload(module)

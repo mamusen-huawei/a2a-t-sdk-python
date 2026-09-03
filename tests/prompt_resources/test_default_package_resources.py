@@ -1,8 +1,16 @@
+"""Default packaged bundle tests through the resource access layer.
+
+Replaces the interim loader tests: the packaged prompt resources are read through a
+``PackagedPromptResourceAccess`` (the default source of the D31 access layer), covering the
+scenario catalogs, task templates, slot schemas and the instruction prompts of both languages.
+"""
+
 from __future__ import annotations
 
 import sys
-import unittest
 from pathlib import Path
+
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -10,61 +18,60 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from a2a_t.common.prompt_resources import PackagedPromptResourceAccess
+from a2a_t.common.prompt_resources.models import slot_schema_from_json_schema
+from a2a_t.core.standard_templates import SUBSCRIBE_INCIDENT_URI
 
-class DefaultPromptResourcePackageTest(unittest.TestCase):
-    def test_default_package_resources_include_expected_default_bundle(self) -> None:
-        from a2a_t.common.prompt_resources.prompt_resource_loader import PromptResourceLoader
-        from a2a_t.common.prompt_resources.scenario_loader import ScenarioLoader
-        from a2a_t.common.prompt_resources.slot_schema_loader import SlotSchemaLoader
-        from a2a_t.common.prompt_resources.template_loader import TemplateLoader
-        from a2a_t.prompt.common.models import PromptReference
-
-        scenarios = ScenarioLoader().load(language="zh-CN")
-        en_scenarios = ScenarioLoader().load(language="en-US")
-        en_reference = PromptReference(scenario_code="subscribe-incident", language="en-US")
-        zh_reference = PromptReference(scenario_code="subscribe-incident", language="zh-CN")
-
-        en_template_text = TemplateLoader().load(reference=en_reference)
-        en_slot_schema = SlotSchemaLoader().load(reference=en_reference)
-        en_json_schema = SlotSchemaLoader().load_json_schema(reference=en_reference)
-
-        template_text = TemplateLoader().load(reference=zh_reference)
-        scenario_prompts = PromptResourceLoader().load(
-            analysis_action="scenario_recognition",
-            language="en-US",
-        )
-        slot_prompts = PromptResourceLoader().load(
-            analysis_action="slot_extraction",
-            language="en-US",
-        )
-
-        self.assertTrue(any(item.scenario_code == "subscribe-incident" for item in scenarios))
-        self.assertTrue(any(item.scenario_code == "subscribe-incident" for item in en_scenarios))
-        self.assertIn("{{", template_text)
-        self.assertIn("{{", en_template_text)
-        self.assertTrue(en_slot_schema.slots)
-        self.assertEqual(en_json_schema.get("type"), "object")
-        self.assertIn("properties", en_json_schema)
-        self.assertTrue(scenario_prompts.system_prompt.strip())
-        self.assertTrue(slot_prompts.user_prompt.strip())
-
-    def test_default_package_resources_include_zh_cn_negotiation_prompts(self) -> None:
-        from a2a_t.common.prompt_resources.prompt_resource_loader import PromptResourceLoader
-
-        loader = PromptResourceLoader()
-
-        for analysis_action in (
-            "target_negotiation",
-            "feasibility_negotiation",
-            "information_negotiation",
-        ):
-            messages = loader.load(
-                analysis_action=analysis_action,
-                language="zh-CN",
-            )
-            self.assertTrue(messages.system_prompt.strip(), analysis_action)
-            self.assertTrue(messages.user_prompt.strip(), analysis_action)
+ACCESS = PackagedPromptResourceAccess()
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize("language", ["zh-CN", "en-US"], ids=lambda language: language)
+def test_default_package_resources_include_the_scenario_catalog(language: str) -> None:
+    scenarios = ACCESS.load_scenarios(language)
+
+    assert any(item.scenario_code == "subscribe-incident" for item in scenarios)
+    assert all(item.scenario_code and item.scenario_name for item in scenarios)
+
+
+@pytest.mark.parametrize("language", ["zh-CN", "en-US"], ids=lambda language: language)
+def test_default_package_resources_include_the_subscribe_incident_template_and_slots(language: str) -> None:
+    template_text = ACCESS.template_text(SUBSCRIBE_INCIDENT_URI, language)
+    slot_json_schema = ACCESS.slot_schema(SUBSCRIBE_INCIDENT_URI, language)
+
+    assert "{{" in template_text
+    assert slot_json_schema.get("type") == "object"
+    assert "properties" in slot_json_schema
+    slot_schema = slot_schema_from_json_schema(slot_json_schema, scenario_code="subscribe-incident")
+    assert slot_schema.slots
+
+
+@pytest.mark.parametrize("language", ["zh-CN", "en-US"], ids=lambda language: language)
+@pytest.mark.parametrize(
+    "analysis_action",
+    ["scenario_recognition", "slot_extraction"],
+    ids=lambda action: action,
+)
+def test_default_package_resources_include_the_analysis_prompts(analysis_action: str, language: str) -> None:
+    system_prompt = ACCESS.load_prompt(analysis_action, language, "system.md")
+    user_prompt = ACCESS.load_prompt(analysis_action, language, "user.md")
+
+    assert system_prompt.strip()
+    assert user_prompt.strip()
+
+
+@pytest.mark.parametrize("language", ["zh-CN", "en-US"], ids=lambda language: language)
+@pytest.mark.parametrize(
+    "analysis_action",
+    [
+        "information_negotiation",
+        "target_negotiation",
+        "feasibility_negotiation",
+    ],
+    ids=lambda action: action,
+)
+def test_default_package_resources_include_the_negotiation_prompts(analysis_action: str, language: str) -> None:
+    system_prompt = ACCESS.load_prompt(analysis_action, language, "system.md")
+    user_prompt = ACCESS.load_prompt(analysis_action, language, "user.md")
+
+    assert system_prompt.strip(), analysis_action
+    assert user_prompt.strip(), analysis_action
