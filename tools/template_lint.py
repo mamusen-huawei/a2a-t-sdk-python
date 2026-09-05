@@ -43,6 +43,7 @@ AUTHORIZATION = {
     "Authorization Policy Operation Description",
     "Network Operation Authorization Policy List",
     "Expected Output",
+    "Terminology Explanation",
 }
 ALIASES = {
     "任务描述": "Task Description",
