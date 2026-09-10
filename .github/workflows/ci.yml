@@ -43,9 +43,11 @@ jobs:
           echo "$src" > "$venv_site/samples.pth"
 
       - name: Run SDK tests
-        # The live-LLM corpus family is opt-in through A2AT_TEST_LLM_* secrets this job does not
-        # provide; -m 'not live' deselects it so CI stays offline-deterministic (D24).
-        run: uv run pytest tests/ -v --tb=short -m 'not live'
+        # The live-LLM families (D24 live corpus and the a2a-t-corpus accuracy workflows) are
+        # opt-in through A2AT_* secrets this job does not provide; -m 'not live' deselects them so
+        # CI stays offline-deterministic. The corpus structural self-guard carries no live marker
+        # and runs here as the corpus format gate.
+        run: uv run pytest tests/ a2a-t-corpus -v --tb=short -m 'not live'
 
       - name: Run samples tests
         run: uv run pytest a2a-t-sample/subscribe-incident/test/ a2a-t-sample/negotiation/test/ -v --tb=short
@@ -75,7 +77,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Lint SDK with ruff
-        run: uv run ruff check src tests
+        run: uv run ruff check src tests a2a-t-corpus
 
       - name: Lint samples with ruff
         working-directory: a2a-t-sample

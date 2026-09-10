@@ -52,16 +52,18 @@ module-name = "a2a_t"
 source-exclude = [".gitignore"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "a2a-t-corpus"]
+# The accuracy-verification corpus module resolves its engine package from this path.
+pythonpath = ["a2a-t-corpus"]
 # Kept deliberately: the a2a-t-sample async tests run under this root config in CI
 # (pytest-asyncio comes in with a2a-t-sample/requirements.txt); the local SDK-only
 # venv just warns about the unknown option.
 asyncio_mode = "auto"
 addopts = "-p no:cacheprovider"
 markers = [
-    # Live-LLM corpus family (D24): opt-in through the A2AT_TEST_LLM_* environment variables;
-    # absent variables skip the family. CI excludes it with -m 'not live'.
-    "live: live-LLM corpus tests against a real A2AT_TEST_LLM_* endpoint (skips when unconfigured)",
+    # Live-LLM engines (D24 live family and the a2a-t-corpus accuracy workflows): opt-in
+    # through the A2AT_* environment variables; CI excludes them with -m 'not live'.
+    "live: live-LLM tests against a real OpenAI-compatible endpoint (skipped/deselected when unconfigured)",
 ]
 
 [tool.ruff]
@@ -78,6 +80,9 @@ ignore = []
 # (D21 strict binding: the field name IS the corpus key), and CorpusLoadException keeps the
 # Java exception name for cross-repo parity.
 "tests/corpus/loader.py" = ["N815", "N818"]
+"a2a-t-corpus/engine/loader.py" = ["N818"]
+# The CSV bridge tools are shared verbatim with the Java repository; keep them untouched.
+"a2a-t-corpus/tools/**" = ["E501", "W292"]
 
 [tool.mypy]
 python_version = "3.12"
