@@ -66,6 +66,22 @@ def coerce_optional_float(value: str | None, key: str) -> float | None:
         raise LLMConfigError(f"{key} must be a float") from exc
 
 
+def coerce_boolean(value: str | None, key: str, *, default: bool) -> bool:
+    """Parse a boolean environment value.
+
+    A blank value keeps the default. A non-blank value must be ``true`` or ``false`` (case
+    insensitive), mirroring the Java ``parseBoolean`` check.
+    """
+    if value is None or not value.strip():
+        return default
+    normalized = value.strip().lower()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise LLMConfigError(f"{key} must be a boolean value (true/false)")
+
+
 def coerce_bounded_int(value: int | str, key: str, *, max_value: int) -> int:
     """Parse an integer config value and enforce a positive upper bound."""
     try:
@@ -133,4 +149,5 @@ class LLMConfigLoader:
             session_max_total=session_max_total,
             session_max_per_provider=session_max_per_provider,
             reasoning_effort=coerce_reasoning_effort(values.get("A2AT_LLM_REASONING_EFFORT")),
+            ssl_verify=coerce_boolean(values.get("A2AT_LLM_SSL_VERIFY"), "A2AT_LLM_SSL_VERIFY", default=True),
         )

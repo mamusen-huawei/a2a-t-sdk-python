@@ -25,6 +25,9 @@ class LLMClientConfig:
         reasoning_effort: optional reasoning effort for reasoning models, one of
             ``none``/``minimal``/``low``/``medium``/``high``/``xhigh`` (already normalized to lower
             case); ``None`` leaves the provider parameter unset. Java ``LLMClientConfig.reasoningEffort``.
+        ssl_verify: whether to verify the TLS certificate chain and hostname of the LLM endpoint; ``False``
+            disables both certificate-chain and hostname verification for HTTPS gateways whose
+            certificate is not in the system trust store. Java ``LLMClientConfig.sslVerify``.
     """
 
     provider: str
@@ -38,3 +41,4 @@ class LLMClientConfig:
     session_max_total: int
     session_max_per_provider: int
     reasoning_effort: str | None = None
+    ssl_verify: bool = True

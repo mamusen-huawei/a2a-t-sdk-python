@@ -113,6 +113,51 @@ class OpenAIClientTest(unittest.TestCase):
         self.assertIn(dumps(json_schema, ensure_ascii=False), payload["messages"][1]["content"])
         self.assertEqual(payload["messages"][2], {"role": "user", "content": "extract router"})
 
+    @patch("a2a_t.llm.providers.openai.httpx")
+    @patch("a2a_t.llm.providers.openai.OpenAI")
+    def test_ssl_verification_disabled_uses_trust_all_http_client(self, openai_cls: Mock, httpx_module: Mock) -> None:
+        sdk_client = Mock()
+        sdk_client.chat.completions.create.return_value = SimpleNamespace(
+            model="gpt-4o-mini",
+            choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))],
+            usage=SimpleNamespace(prompt_tokens=1, completion_tokens=1),
+        )
+        openai_cls.return_value = sdk_client
+
+        from dataclasses import replace
+
+        from a2a_t.llm.providers.openai import OpenAIClient
+
+        config = replace(build_config(base_url="https://self-signed.example/v1"), ssl_verify=False)
+        client = OpenAIClient(config)
+
+        client.structured(messages=[{"role": "user", "content": "extract"}], json_schema={"type": "object"})
+
+        httpx_module.Client.assert_called_once_with(verify=False)
+        self.assertIs(openai_cls.call_args.kwargs["http_client"], httpx_module.Client.return_value)
+
+    @patch("a2a_t.llm.providers.openai.httpx")
+    @patch("a2a_t.llm.providers.openai.OpenAI")
+    def test_ssl_verification_enabled_by_default_keeps_default_http_client(
+        self, openai_cls: Mock, httpx_module: Mock
+    ) -> None:
+        sdk_client = Mock()
+        sdk_client.chat.completions.create.return_value = SimpleNamespace(
+            model="gpt-4o-mini",
+            choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))],
+            usage=SimpleNamespace(prompt_tokens=1, completion_tokens=1),
+        )
+        openai_cls.return_value = sdk_client
+
+        from a2a_t.llm.providers.openai import OpenAIClient
+
+        client = OpenAIClient(build_config(base_url="https://api.example.test/v1"))
+
+        client.structured(messages=[{"role": "user", "content": "extract"}], json_schema={"type": "object"})
+
+        httpx_module.Client.assert_not_called()
+        self.assertNotIn("http_client", openai_cls.call_args.kwargs)
+
     @patch("a2a_t.llm.providers.openai.OpenAI")
     def test_structured_rejects_non_json_object_response(self, openai_cls: Mock) -> None:
         sdk_client = Mock()

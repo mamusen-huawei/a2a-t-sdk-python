@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
+import httpx
 from openai import OpenAI
 
 from a2a_t.llm.errors import LLMConfigError, LLMRuntimeError
@@ -26,7 +28,7 @@ class OpenAIClient(LLMClient):
         if not config.api_key.strip():
             raise LLMConfigError(f"{config.provider} client requires a non-empty api_key")
         self._config = config
-        self._logger = logger
+        self._logger = logger if logger is not None else logging.getLogger(__name__)
         self._client: Any | None = None
 
     def _get_client(self) -> Any:
@@ -39,6 +41,13 @@ class OpenAIClient(LLMClient):
             "timeout": self._config.timeout_seconds,
             "base_url": self._config.base_url,
         }
+        if not self._config.ssl_verify:
+            self._logger.warning(
+                "TLS certificate chain and hostname verification are disabled for the %s LLM client"
+                " (A2AT_LLM_SSL_VERIFY=false); use only in controlled environments with trusted networks",
+                self._config.provider,
+            )
+            client_options["http_client"] = httpx.Client(verify=False)
         self._client = OpenAI(**client_options)
         return self._client
 

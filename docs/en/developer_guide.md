@@ -1444,6 +1444,7 @@ The full configuration template is the repository-root `env.example`; copy it to
 | `A2AT_LLM_TIMEOUT_SECONDS` | LLM request timeout in seconds; sample value `60`, provider default when left empty |
 | `A2AT_LLM_HISTORY_WINDOW` | Number of session history messages to keep, default `10` |
 | `A2AT_LLM_REASONING_EFFORT` | Reasoning effort level; one of `none`/`minimal`/`low`/`medium`/`high`/`xhigh`, not set when left empty |
+| `A2AT_LLM_SSL_VERIFY` | Whether to verify the LLM endpoint TLS certificate chain and hostname (per the CA trust configuration used by the HTTPX/OpenAI client); `false` disables both — prefer importing a trusted CA and use `false` only short-term in controlled environments, default `true` |
 | `A2AT_LLM_SESSION_MAX_TOTAL` | Maximum total number of tracked sessions, default `300` |
 | `A2AT_LLM_SESSION_MAX_PER_PROVIDER` | Maximum number of tracked sessions per provider, default `100` |
 | `A2AT_LLM_MAX_ATTEMPTS` | Maximum number of attempts for retryable LLM steps; range 1-10 (out-of-range values are clamped), default `3` |
