@@ -1,6 +1,6 @@
 [
   {
-    "id": "NC00000001",
+    "id": "TC00000001",
     "caseDimension": "01-意图清晰参数完整",
     "caseDesc": "无线节能-目标协商-propose-自然语言生成并校验",
     "caseCategory": "正常",
@@ -21,25 +21,45 @@
       {
         "api": "validateProposePromptAndDataFilling",
         "args": {
-          "promptText": { "$fromStep": 1, "$field": "promptText" },
+          "promptText": {
+            "$fromStep": 1,
+            "$field": "promptText"
+          },
           "context": {
             "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
             "round": 1,
             "maxRounds": 5,
             "performative": "PROPOSE"
           },
-          "schema": { "type": "object", "properties": {} },
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
           "templateUri": "Negotiation-T/target-negotiation/propose/v1"
         }
       }
     ],
     "expected": [
-      { "result": "success", "data": {}, "error": { "errCode": "", "errMessage": "" } },
-      { "result": "success", "data": {}, "error": { "errCode": "", "errMessage": "" } }
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      }
     ]
   },
   {
-    "id": "NC00000002",
+    "id": "TC00000002",
     "caseDimension": "02-校验空报文",
     "caseDesc": "目标协商-propose 后 validate 传入空报文，返回 negotiation.invalid_input",
     "caseCategory": "异常",
@@ -67,14 +87,31 @@
             "maxRounds": 5,
             "performative": "PROPOSE"
           },
-          "schema": { "type": "object", "properties": {} },
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
           "templateUri": "Negotiation-T/target-negotiation/propose/v1"
         }
       }
     ],
     "expected": [
-      { "result": "success", "data": {}, "error": { "errCode": "", "errMessage": "" } },
-      { "result": "error", "data": {}, "error": { "errCode": "negotiation.invalid_input", "errMessage": "" } }
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "error",
+        "data": {},
+        "error": {
+          "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      }
     ]
   }
 ]

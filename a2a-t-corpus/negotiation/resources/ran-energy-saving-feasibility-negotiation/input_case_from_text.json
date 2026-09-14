@@ -1,6 +1,6 @@
 [
   {
-    "id": "NF00000001",
+    "id": "TC00000001",
     "caseDimension": "01-意图清晰参数完整",
     "caseDesc": "无线节能-可行性协商-propose-自然语言生成并校验",
     "caseCategory": "正常",
@@ -21,21 +21,41 @@
       {
         "api": "validateProposePromptAndDataFilling",
         "args": {
-          "promptText": { "$fromStep": 1, "$field": "promptText" },
+          "promptText": {
+            "$fromStep": 1,
+            "$field": "promptText"
+          },
           "context": {
             "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
             "round": 1,
             "maxRounds": 5,
             "performative": "PROPOSE"
           },
-          "schema": { "type": "object", "properties": {} },
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
       }
     ],
     "expected": [
-      { "result": "success", "data": {}, "error": { "errCode": "", "errMessage": "" } },
-      { "result": "success", "data": {}, "error": { "errCode": "", "errMessage": "" } }
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      }
     ]
   }
 ]
