@@ -4,15 +4,16 @@ The data-driven accuracy verification of the A2A-T SDK: JSON workflow cases are 
 the production SDK assembly against a **real LLM**, producing a complete per-step API/LLM
 transcript, latency and token metrics, and a 95%+ accuracy target line that drives prompt tuning.
 
-Phase strategy: only **Task-T** is implemented today as the reference extension. Notification-T /
-Negotiation-T / Authorization-T follow the same structure once Task-T stabilizes.
+Extension coverage: **Task-T** is the reference extension; **Negotiation-T** follows the same
+structure (target / information / feasibility negotiation for RAN energy saving). Notification-T
+and Authorization-T extend the same way once their reference scenarios stabilize.
 
 - **Test-only module**: lives under `a2a-t-corpus/`, is not part of the `a2a_t` wheel, and is
   deselected from CI with `-m 'not live'`.
 - **A real LLM is required**: a missing or invalid `A2AT_LLM_*` configuration fails fast with an
   actionable error. The corpus `.env` keys reuse the project-root `env.example` naming, so the
-  corpus template is a tuned subset of the root one. The structural self-guard runs offline and
-  stays inside CI.
+  corpus template is a tuned subset of the root one. The structural self-guards run offline and
+  stay inside CI.
 - **Case JSON is the shared Java/Python contract**: the corpus case files and the two schemas
   under `schemas/` are byte-identical to the Java repository (`a2a-t-corpus`), and the tools under
   `tools/` are the same Python scripts.
@@ -21,9 +22,9 @@ Negotiation-T / Authorization-T follow the same structure once Task-T stabilizes
 
 ```bash
 cp a2a-t-corpus/env.example a2a-t-corpus/.env   # fill A2AT_LLM_BASE_URL / API_KEY / MODEL
-uv run pytest a2a-t-corpus/task/test_task_t_from_text_workflow.py -m live
-uv run pytest a2a-t-corpus/task -m live --corpus-scenario=private-line-complaint
-uv run pytest a2a-t-corpus/task -m live --corpus-scenario='private-*' --case-filter='TC0000000*'
+uv run pytest a2a-t-corpus/suites/task/test_task_t_from_text_workflow.py -m live
+uv run pytest a2a-t-corpus/suites/task -m live --corpus-scenario=private-line-complaint
+uv run pytest a2a-t-corpus/suites/negotiation -m live --corpus-scenario='ran-energy-saving-*'
 ```
 
 - `--corpus-scenario`: scenario name glob (comma-separated); `--case-filter`: case id glob.
@@ -33,8 +34,8 @@ uv run pytest a2a-t-corpus/task -m live --corpus-scenario='private-*' --case-fil
 - `--corpus-output-dir=<dir>`: redirect the `output_result_<flow>.json` files and the summary
   into the given directory (default: transcripts write back into the scenario directories, the
   summary into `a2a-t-corpus/.corpus/`).
-- Without an LLM, run the structural gate first:
-  `uv run pytest a2a-t-corpus/task/test_self_guard.py` (this one runs in CI).
+- Without an LLM, run the structural gates first (these run in CI):
+  `uv run pytest a2a-t-corpus/suites/task/test_self_guard.py a2a-t-corpus/suites/negotiation/test_negotiation_self_guard.py`.
 
 ## Directory
 
@@ -44,12 +45,19 @@ a2a-t-corpus/
 ├── schemas/              input-case.schema.json, output-result.schema.json (shared contract)
 ├── tools/                inputCsvToJson, outputJsonToCsv, csv-templates/ (same as Java)
 ├── conftest.py           pytest options, runtime fixture, case parametrization
-├── engine/               the workflow framework (config/loader/discover/registry/recorder/
-│                         from_step/errors_serializer/assertion/engine/assembler/report/suite)
-└── task/                 test_task_t_from_text_workflow, test_task_t_from_data_workflow,
-    │                     test_self_guard
-    └── resources/<scenario>/   input_case_from_text.json, input_case_from_data.json
-                                (+ output_result_*.json written by each run)
+├── engine/               the workflow framework (config/constants/loader/discover/registry/
+│                         recorder/from_step/errors_serializer/assertion/engine/assembler/
+│                         client_apis/server_apis/negotiation_apis/report/suite)
+└── suites/               the per-extension workflow suites
+    ├── task/             test_task_t_from_text_workflow, test_task_t_from_data_workflow,
+    │   │                 test_self_guard
+    │   └── resources/<scenario>/   input_case_from_text.json, input_case_from_data.json
+    │                               (+ output_result_*.json written by each run)
+    └── negotiation/      test_negotiation_t_from_text_workflow,
+        │                 test_negotiation_t_from_data_workflow, test_negotiation_self_guard
+        └── resources/<scenario>/   ran-energy-saving-target-negotiation,
+                                    ran-energy-saving-information-negotiation,
+                                    ran-energy-saving-feasibility-negotiation
 ```
 
 ## Case JSON contract (v1, first-hand definition in `schemas/`)
@@ -100,24 +108,19 @@ a2a-t-corpus/
 python a2a-t-corpus/tools/inputCsvToJson.py --template --out my-cases.csv   # case design table
 # fill the table, then convert (structural validation runs by default)
 python a2a-t-corpus/tools/inputCsvToJson.py --csv my-cases.csv \
-    --out a2a-t-corpus/task/resources/<scenario>/input_case_from_text.json
+    --out a2a-t-corpus/suites/task/resources/<scenario>/input_case_from_text.json
 # after a run, review (one row per case with complete per-step request/response)
 python a2a-t-corpus/tools/outputJsonToCsv.py \
-    --json a2a-t-corpus/task/resources/<scenario>/output_result_from_text.json --out review.csv
+    --json a2a-t-corpus/suites/task/resources/<scenario>/output_result_from_text.json --out review.csv
 # optional: fill an input JSON back into the design table
 python a2a-t-corpus/tools/inputCsvToJson.py --reverse --csv <input_case_from_text.json> --out back.csv
 ```
 
 ## Adding a scenario (zero code)
 
-Create `task/resources/<scenario>/` with the two input JSONs — the suites discover it at
-collection time. Run `test_self_guard.py` (offline) as the structural gate first.
-
-## Later phases (after Task-T stabilizes)
-
-Notification-T / Negotiation-T / Authorization-T: add their `corpus/<extension>/` suites and
-`resources/`, register their facade APIs in `engine/assembler.py`; framework and tools are reused
-unchanged.
+Create `suites/<extension>/resources/<scenario>/` with the two input JSONs — the suites discover
+it at collection time. Run the matching `test_*_self_guard.py` (offline) as the structural gate
+first.
 
 ## Configuration name parity
 

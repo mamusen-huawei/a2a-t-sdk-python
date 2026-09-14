@@ -37,8 +37,8 @@ class ScenarioScanner:
 
     @staticmethod
     def discover(extension_folder: str, flow_file_name: str) -> list[Scenario]:
-        """List every scenario under ``<extension>/resources/`` carrying the requested case file."""
-        source_tree = corpus_root() / extension_folder / "resources"
+        """List every scenario under ``suites/<extension>/resources/`` carrying the requested case file."""
+        source_tree = corpus_root() / "suites" / extension_folder / "resources"
         scenarios: list[Scenario] = []
         if source_tree.is_dir():
             for directory in source_tree.iterdir():
@@ -48,8 +48,8 @@ class ScenarioScanner:
         if not scenarios:
             raise RuntimeError(
                 "No corpus scenario directories found: expected "
-                f"{extension_folder}/resources/<scenario>/{flow_file_name} (source tree {source_tree} "
-                "does not contain any match)"
+                f"suites/{extension_folder}/resources/<scenario>/{flow_file_name} (source tree "
+                f"{source_tree} does not contain any match)"
             )
         return scenarios
 
