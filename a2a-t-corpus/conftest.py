@@ -3,12 +3,16 @@
 
 - CLI filters: ``--corpus-scenario`` (scenario glob), ``--case-filter`` (case id glob) and
   ``--corpus-output-dir`` (transcript/summary redirect).
-- ``workflow_runtime``: the shared session-scoped SDK runtime. It resolves lazily on the first
-  executed workflow case, so collection and the CI-deselected runs never touch the LLM config —
-  an unconfigured or invalid ``A2AT_LLM_*`` setup fails fast with an actionable error exactly when
-  someone actually tries to run the live suites.
+- ``workflow_runtime``: the shared module-selected SDK runtime (one session singleton per
+  extension). It resolves lazily on the first executed workflow case, so collection and the
+  CI-deselected runs never touch the LLM config — an unconfigured or invalid ``A2AT_LLM_*`` setup
+  fails fast with an actionable error exactly when someone actually tries to run the live suites.
 - ``pytest_generate_tests``: parametrizes the workflow suite modules over the discovered scenario
   cases (test id = ``<scenario>/<case id>``), the ``@TestFactory`` counterpart.
+
+Suite modules declare four constants: ``EXTENSION_FOLDER``, ``INPUT_CASE_FILE``, ``FLOW_TYPE`` and
+``RUNTIME_KIND`` (``"task"`` or ``"negotiation"``); ``API_NAMES`` defaults to the Task-T set when
+omitted.
 """
 
 from __future__ import annotations
@@ -43,8 +47,13 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+def _runtime_kind(request: pytest.FixtureRequest) -> str:
+    """Read the suite's runtime kind from its module, defaulting to Task-T."""
+    return getattr(request.module, "RUNTIME_KIND", "task")
+
+
 @pytest.fixture(scope="session")
-def workflow_runtime() -> Any:
+def task_workflow_runtime() -> Any:
     """The shared Task-T SDK runtime, assembled lazily on first use.
 
     Raises:
@@ -56,6 +65,27 @@ def workflow_runtime() -> Any:
 
 
 @pytest.fixture(scope="session")
+def negotiation_workflow_runtime() -> Any:
+    """The shared Negotiation-T SDK runtime, assembled lazily on first use.
+
+    Raises:
+        RuntimeError: when the corpus LLM configuration is missing or invalid.
+    """
+    from engine.assembler import negotiation_runtime
+
+    return negotiation_runtime()
+
+
+@pytest.fixture(scope="module")
+def workflow_runtime(request: pytest.FixtureRequest) -> Any:
+    """The module-selected runtime singleton (one per extension, shared across its suites)."""
+    kind = _runtime_kind(request)
+    if kind == "negotiation":
+        return request.getfixturevalue("negotiation_workflow_runtime")
+    return request.getfixturevalue("task_workflow_runtime")
+
+
+@pytest.fixture(scope="session")
 def summary_output_dir(request: pytest.FixtureRequest) -> Path | None:
     """The configured run-output override (transcripts and summary), or ``None`` for the defaults."""
     raw = request.config.getoption("--corpus-output-dir")
@@ -63,12 +93,20 @@ def summary_output_dir(request: pytest.FixtureRequest) -> Path | None:
 
 
 @pytest.fixture(scope="module")
-def workflow_engine(workflow_runtime: Any) -> Any:
+def workflow_engine(request: pytest.FixtureRequest, workflow_runtime: Any) -> Any:
     """One workflow engine shared by every case of the suite module."""
-    from engine.assembler import build_task_registry
     from engine.engine import WorkflowEngine
 
-    return WorkflowEngine(build_task_registry(workflow_runtime), workflow_runtime.recorder)
+    kind = _runtime_kind(request)
+    if kind == "negotiation":
+        from engine.assembler import build_negotiation_registry
+
+        registry = build_negotiation_registry(workflow_runtime)
+    else:
+        from engine.assembler import build_task_registry
+
+        registry = build_task_registry(workflow_runtime)
+    return WorkflowEngine(registry, workflow_runtime.recorder)
 
 
 @pytest.fixture(scope="module")
@@ -107,7 +145,10 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     parameters: list[tuple[Any, Any]] = []
     ids: list[str] = []
     for scenario in scenarios:
-        for input_case in loader.load(scenario.input_file(flow_file_name), TASK_API_NAMES):
+        for input_case in loader.load(
+            scenario.input_file(flow_file_name),
+            getattr(metafunc.module, "API_NAMES", TASK_API_NAMES),
+        ):
             if not ScenarioScanner.matches_case_filter(case_filter, input_case.id):
                 continue
             parameters.append((scenario, input_case))
