@@ -76,6 +76,46 @@ class LLMConfigLoaderTest(ManagedTempDirTestCase):
         self.assertIsNone(config.max_tokens)
         self.assertIsNone(config.temperature)
         self.assertIsNone(config.timeout_seconds)
+        self.assertTrue(config.ssl_verify)
+
+    def test_load_parses_ssl_verify(self) -> None:
+        from a2a_t.llm.config_loader import LLMConfigLoader
+
+        for raw_value, expected in [("false", False), ("FALSE", False), ("true", True), ("  true  ", True)]:
+            with self.subTest(raw_value=raw_value):
+                env_path = self._write_env(
+                    "\n".join(
+                        [
+                            "A2AT_LLM_PROVIDER=openai",
+                            "A2AT_LLM_MODEL=gpt-4o-mini",
+                            "A2AT_LLM_API_KEY=sk-test",
+                            f"A2AT_LLM_SSL_VERIFY={raw_value}",
+                        ]
+                    )
+                    + "\n"
+                )
+
+                config = LLMConfigLoader.load(env_path)
+
+                self.assertIs(config.ssl_verify, expected)
+
+    def test_load_rejects_invalid_ssl_verify_value(self) -> None:
+        from a2a_t.llm.config_loader import LLMConfigLoader
+
+        env_path = self._write_env(
+            "\n".join(
+                [
+                    "A2AT_LLM_PROVIDER=openai",
+                    "A2AT_LLM_MODEL=gpt-4o-mini",
+                    "A2AT_LLM_API_KEY=sk-test",
+                    "A2AT_LLM_SSL_VERIFY=maybe",
+                ]
+            )
+            + "\n"
+        )
+
+        with self.assertRaisesRegex(LLMConfigError, "A2AT_LLM_SSL_VERIFY"):
+            LLMConfigLoader.load(env_path)
 
     def test_load_rejects_missing_env_file(self) -> None:
         env_path = self.make_temp_dir("llm_config_loader_missing_env") / "missing.env"
