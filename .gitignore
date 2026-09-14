@@ -33,7 +33,7 @@ a2a-t-sample/.env
 # Accuracy-verification corpus (a2a-t-corpus): secrets, run artifacts and work outputs
 a2a-t-corpus/.env
 a2a-t-corpus/.corpus/
-a2a-t-corpus/*/resources/*/output_result_*.json
+a2a-t-corpus/suites/*/resources/*/output_result_*.json
 
 # Claude 本地配置
 .claude/

@@ -2,7 +2,7 @@
 
 A2A-T SDK 的数据驱动准确性验证：把 JSON 工作流用例经生产 SDK 装配链路对**真实 LLM** 执行，产出逐步 API/LLM 完整转录、时延与 Token 指标，并以 95%+ 准确率达标线支撑提示词调优。
 
-阶段策略（当前）仅实现 **Task-T**，作为标杆迭代优化；Notification-T / Negotiation-T / Authorization-T 待 Task-T 稳定后按同结构扩展（套件模块 + `resources/` + 注册表条目，零分叉）。
+当前实现扩展：**Task-T**（专线投诉诊断）与 **Negotiation-T**（无线节能目标/信息/可行性协商），均为标杆迭代；Notification-T / Authorization-T 待参考场景稳定后按同结构扩展（套件模块 + `resources/` + 注册表条目，零分叉）。
 
 - **纯测试模块**：位于 `a2a-t-corpus/`，不进 `a2a_t` wheel，CI 以 `-m 'not live'` 排除。
 - **必须配置真实 LLM**：缺少三个必填 `A2AT_LLM_*` 配置时 fail-fast 并给出配置指引。`.env` 键名与项目根 `env.example` 保持一致，corpus 模板即根模板的精调子集。结构自守卫（无 LLM）仍进 CI。
@@ -18,26 +18,33 @@ a2a-t-corpus/
 ├── conftest.py       pytest 选项、运行时 fixture、用例参数化钩子
 ├── engine/           框架核心：config/constants/loader/discover/registry/recorder/
 │                     from_step/errors_serializer/assertion/engine/assembler/
-│                     client_apis/server_apis/report/suite
-└── task/             test_task_t_from_text_workflow、test_task_t_from_data_workflow、
-    │                 test_self_guard
-    └── resources/<场景>/   input_case_from_text.json 与 input_case_from_data.json
-                           （用例设计，人工构造）；output_result_*.json 由引擎每次运行写回
+│                     client_apis/server_apis/negotiation_apis/report/suite
+└── suites/           各扩展的准确性验证套件
+    ├── task/         test_task_t_from_text_workflow、test_task_t_from_data_workflow、
+    │   │             test_self_guard
+    │   └── resources/<场景>/   input_case_from_text.json 与 input_case_from_data.json
+    │                          （用例设计，人工构造）；output_result_*.json 由引擎每次运行写回
+    └── negotiation/  test_negotiation_t_from_text_workflow、
+        │             test_negotiation_t_from_data_workflow、test_negotiation_self_guard
+        └── resources/<场景>/   ran-energy-saving-target-negotiation、
+                                ran-energy-saving-information-negotiation、
+                                ran-energy-saving-feasibility-negotiation
 ```
 
 ## 快速开始
 
 ```bash
 cp a2a-t-corpus/env.example a2a-t-corpus/.env   # 填写 A2AT_LLM_BASE_URL / API_KEY / MODEL
-uv run pytest a2a-t-corpus/task/test_task_t_from_text_workflow.py -m live
-uv run pytest a2a-t-corpus/task -m live --corpus-scenario=private-line-complaint
-uv run pytest a2a-t-corpus/task -m live --corpus-scenario='private-*' --case-filter='TC0000000*'
+uv run pytest a2a-t-corpus/suites/task/test_task_t_from_text_workflow.py -m live
+uv run pytest a2a-t-corpus/suites/task -m live --corpus-scenario=private-line-complaint
+uv run pytest a2a-t-corpus/suites/negotiation -m live --corpus-scenario='ran-energy-saving-*'
 ```
 
 - `--corpus-scenario`：场景名 glob（逗号分隔）；`--case-filter`：用例 id glob。测试 id 形如 `<场景名>/<id>`，`-k` 亦可直达单条用例。
 - 每条已执行用例完成即打印到控制台；失败/崩溃用例同时打印完整 interaction 轨迹；转录文件只反映本次执行（过滤运行会以命中的用例整体覆盖文件）。
 - `--corpus-output-dir=<dir>`：把输出重定向到指定目录（缺省转录写回场景目录；summary 默认落 `a2a-t-corpus/.corpus/`）。
-- 无 LLM 时先跑结构自守卫（此测试进 CI）：`uv run pytest a2a-t-corpus/task/test_self_guard.py`。
+- 无 LLM 时先跑结构自守卫（此测试进 CI）：
+  `uv run pytest a2a-t-corpus/suites/task/test_self_guard.py a2a-t-corpus/suites/negotiation/test_negotiation_self_guard.py`。
 
 ## 用例 JSON 契约（v1，一手定义见 `schemas/`）
 
@@ -78,21 +85,21 @@ uv run pytest a2a-t-corpus/task -m live --corpus-scenario='private-*' --case-fil
 python a2a-t-corpus/tools/inputCsvToJson.py --template --out my-cases.csv   # 用例设计表（含一行示例）
 # 填表后转换（默认开启产物结构校验）
 python a2a-t-corpus/tools/inputCsvToJson.py --csv my-cases.csv \
-    --out a2a-t-corpus/task/resources/<场景>/input_case_from_text.json
+    --out a2a-t-corpus/suites/task/resources/<场景>/input_case_from_text.json
 # 跑套件后审视（一行=一个用例，含每步完整请求/响应）
 python a2a-t-corpus/tools/outputJsonToCsv.py \
-    --json a2a-t-corpus/task/resources/<场景>/output_result_from_text.json --out review.csv
+    --json a2a-t-corpus/suites/task/resources/<场景>/output_result_from_text.json --out review.csv
 # 可选：把 input JSON 回填为设计表
 python a2a-t-corpus/tools/inputCsvToJson.py --reverse --csv <input_case_from_text.json> --out back.csv
 ```
 
 ## 新增场景（零 Python 改动）
 
-新建 `task/resources/<场景>/` 并放入两个 input JSON 即可——套件收集期扫描发现场景。结构门禁先用 `test_self_guard.py`（无 LLM）跑一遍。
+新建 `suites/<扩展>/resources/<场景>/` 并放入两个 input JSON 即可——套件收集期扫描发现场景。结构门禁先用对应扩展的 `test_*_self_guard.py`（无 LLM）跑一遍。
 
-## 后续阶段（Task-T 稳定后）
+## 后续扩展（参考场景稳定后）
 
-Notification-T / Negotiation-T / Authorization-T：新增 `a2a-t-corpus/<扩展>/` 套件与对应 `resources/`，在 `engine/assembler.py` 登记该扩展的生成/校验 API，框架与工具链原样复用。
+Notification-T / Authorization-T：新增 `suites/<扩展>/` 套件与对应 `resources/`，在 `engine/assembler.py` 登记该扩展的生成/校验 API，框架与工具链原样复用。
 
 ## 配置同源说明
 

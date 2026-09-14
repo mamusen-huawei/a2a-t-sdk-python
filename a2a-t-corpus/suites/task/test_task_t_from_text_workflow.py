@@ -1,7 +1,7 @@
 """Task-T natural-language workflow suite (port of the Java ``TaskTFromTextWorkFlowTest``).
 
-For every scenario directory under ``a2a-t-corpus/task/resources/``, runs the recorded SDK API
-flow of each case in ``input_case_from_text.json`` against a real LLM.
+For every scenario directory under ``a2a-t-corpus/suites/task/resources/``, runs the recorded SDK
+API flow of each case in ``input_case_from_text.json`` against a real LLM.
 
 Default API flow (also shown in the case files): ``generateTaskPromptFromText`` →
 ``validateTaskPromptAndDataFilling``.
