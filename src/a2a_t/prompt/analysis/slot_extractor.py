@@ -156,7 +156,10 @@ class SlotExtractor:
         if facts is not None and not all(
             isinstance(key, str) and isinstance(value, str) for key, value in facts.items()
         ):
-            raise SlotExtractionError("Slot extraction slot_errors facts must map strings to strings.", raw_content=raw_content)
+            raise SlotExtractionError(
+                "Slot extraction slot_errors facts must map strings to strings.",
+                raw_content=raw_content,
+            )
         if message is not None and (not isinstance(message, str) or not message.strip()):
             raise SlotExtractionError("Slot extraction returned empty slot_error message.", raw_content=raw_content)
 
