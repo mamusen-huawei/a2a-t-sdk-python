@@ -37,9 +37,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -96,9 +146,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -155,9 +255,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -214,9 +364,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -273,9 +473,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -332,9 +582,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -391,9 +691,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -450,9 +800,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -509,9 +909,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -568,9 +1018,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -621,6 +1121,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -637,6 +1171,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -674,6 +1224,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -690,6 +1274,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -727,6 +1327,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -743,6 +1377,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -780,6 +1430,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -796,6 +1480,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -833,6 +1533,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -849,6 +1583,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -886,6 +1636,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -902,6 +1686,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -939,6 +1739,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -955,6 +1789,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -992,6 +1842,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1008,6 +1892,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1045,6 +1945,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1061,6 +1995,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1098,6 +2048,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1114,6 +2098,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.invalid_input",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1157,9 +2157,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1216,9 +2266,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1275,9 +2375,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1334,9 +2484,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1393,9 +2593,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1452,9 +2702,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1511,9 +2811,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1570,9 +2920,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1629,9 +3029,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1688,9 +3138,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1747,6 +3247,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1763,6 +3297,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1806,6 +3356,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1822,6 +3406,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1865,6 +3465,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1881,6 +3515,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1924,6 +3574,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1940,6 +3624,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1983,6 +3683,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1999,6 +3733,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2042,6 +3792,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2058,6 +3842,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2101,6 +3901,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2117,6 +3951,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2160,6 +4010,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2176,6 +4060,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2219,6 +4119,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2235,6 +4169,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2278,6 +4228,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2294,6 +4278,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2370,6 +4370,40 @@
           },
           "templateUri": "Negotiation-T/information-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n节能区域信息为松山湖\n节能速率保障目标为20Mbps",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 信息协商结果\nReject\n\n## 信息协商结果内容\n无法提供区域信息",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2386,6 +4420,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       },

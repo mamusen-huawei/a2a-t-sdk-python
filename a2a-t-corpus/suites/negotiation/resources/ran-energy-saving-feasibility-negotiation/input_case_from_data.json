@@ -54,9 +54,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -130,9 +180,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -206,9 +306,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -282,9 +432,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -358,9 +558,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -434,9 +684,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -510,9 +810,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -586,9 +936,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -662,9 +1062,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -738,9 +1188,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -785,6 +1285,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -793,6 +1327,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -824,6 +1374,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -832,6 +1416,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -863,6 +1463,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -871,6 +1505,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -902,6 +1552,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -910,6 +1594,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -941,6 +1641,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -949,6 +1683,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -980,6 +1730,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -988,6 +1772,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1019,6 +1819,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1027,6 +1861,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1058,6 +1908,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1066,6 +1950,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1097,6 +1997,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1105,6 +2039,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1136,6 +2086,40 @@
           },
           "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1"
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1144,6 +2128,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.content_invalid",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1200,9 +2200,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1272,9 +2322,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1344,9 +2444,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1416,9 +2566,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1488,9 +2688,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1560,9 +2810,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1632,9 +2932,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1704,9 +3054,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1776,9 +3176,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1848,9 +3298,59 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
       {
         "result": "success",
         "data": {},
@@ -1920,6 +3420,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -1936,6 +3470,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -1992,6 +3542,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2008,6 +3592,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2064,6 +3664,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2080,6 +3714,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2136,6 +3786,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2152,6 +3836,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2208,6 +3908,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2224,6 +3958,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2280,6 +4030,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2296,6 +4080,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2352,6 +4152,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2368,6 +4202,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2424,6 +4274,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2440,6 +4324,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2496,6 +4396,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2512,6 +4446,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2568,6 +4518,40 @@
             "performative": "PROPOSE"
           }
         }
+      },
+      {
+        "api": "validateAcceptPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nAccept\n\n## 可行性评估结果确认\n节能目标可达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 2,
+            "maxRounds": 5,
+            "performative": "ACCEPT"
+          }
+        }
+      },
+      {
+        "api": "validateRejectPromptAndDataFilling",
+        "args": {
+          "promptText": "## 可行性协商结果\nReject\n\n## 可行性评估结果确认\n节能目标无法达成，本次协商确认结束。",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          },
+          "templateUri": "Negotiation-T/feasibility-negotiation/accept-reject/v1",
+          "context": {
+            "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3",
+            "round": 3,
+            "maxRounds": 5,
+            "performative": "REJECT"
+          }
+        }
       }
     ],
     "expected": [
@@ -2584,6 +4568,22 @@
         "data": {},
         "error": {
           "errCode": "negotiation.semantic_rejected",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
+          "errMessage": ""
+        }
+      },
+      {
+        "result": "success",
+        "data": {},
+        "error": {
+          "errCode": "",
           "errMessage": ""
         }
       }
