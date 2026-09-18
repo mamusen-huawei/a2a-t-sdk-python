@@ -2002,8 +2002,8 @@
   {
     "id": "TC00000014",
     "caseDimension": "02-关键内容缺失",
-    "caseDesc": "信息协商-propose-请求3项时accept回填缺失1项，步骤4语义校验拒绝，返回 negotiation.semantic_rejected",
-    "caseCategory": "异常",
+    "caseDesc": "信息协商-propose-请求3项时accept回填2项（空关系尽力而为），校验通过",
+    "caseCategory": "正常",
     "input": [
       {
         "api": "generateNegotiationProposePromptFromData",
@@ -2172,10 +2172,13 @@
         }
       },
       {
-        "result": "error",
-        "data": {},
+        "result": "success",
+        "data": {
+          "energy_region": "松山湖管委会",
+          "rate_target": "20Mbps"
+        },
         "error": {
-          "errCode": "negotiation.semantic_rejected",
+          "errCode": "",
           "errMessage": ""
         }
       }
@@ -2522,8 +2525,8 @@
   {
     "id": "TC00000019",
     "caseDimension": "02-关键内容缺失",
-    "caseDesc": "信息协商-propose-请求2项时accept回填缺失1项（时段变体），步骤4语义校验拒绝，返回 negotiation.semantic_rejected",
-    "caseCategory": "异常",
+    "caseDesc": "信息协商-propose-请求2项时accept回填1项（空关系尽力而为），校验通过",
+    "caseCategory": "正常",
     "input": [
       {
         "api": "generateNegotiationProposePromptFromData",
@@ -2679,10 +2682,12 @@
         }
       },
       {
-        "result": "error",
-        "data": {},
+        "result": "success",
+        "data": {
+          "energy_region": "深圳坂田"
+        },
         "error": {
-          "errCode": "negotiation.semantic_rejected",
+          "errCode": "",
           "errMessage": ""
         }
       }
